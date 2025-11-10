@@ -156,7 +156,7 @@ def plot_process(samples:np.ndarray, labels:list[str]|None=None,
             plt.legend()
         if title:
             plt.title(title)
-        
+        plt.grid()
         # function to show the plot 
         if save_picture:
             plt.savefig(f"{folder_path}{img_name}-{img_idx}.png")

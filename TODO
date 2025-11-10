@@ -1,7 +1,8 @@
 # TODO
 
 
-- **LSTM**
+- **LSTM**:
+    - una rete per ogni dimensione
 
 
 - **GRU**
@@ -20,4 +21,9 @@
 
 - Creare la *repository*
 - Impostare il *Dockerfile* e gli script `build.sh`, `clean.sh` e `run.sh`
-
+- Reti standard
+    - Regressore **LSTM**
+    - Regressore **GRU**
+    - Classificatore **LSTM**
+    - Classificatore **GRU**
+- Upload dati sul cluster e generazione dell'immagine .sif
