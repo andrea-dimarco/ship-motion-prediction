@@ -5,6 +5,7 @@ import numpy as np
 import utils.utils as utils
 
 
+
 def generate_sinusoidal_timeseries(n:int,
                                    f:int,
                                    freq_range:tuple[float,float]=(0.1, 1.0),
@@ -152,6 +153,24 @@ def generate_sinusoidal_timeseries_batch(n: int,
 
 
 
+def add_label_to_timeseries(DF:pd.DataFrame, n_labels:int, save_path:str|None=None) -> pd.DataFrame:
+    '''
+    Adds a 'label' feature for each dimension of the dataset.
+    '''
+    for col in DF.columns:
+        new_col_name = f"label_{col}"
+        DF[new_col_name] = [min(n_labels-1,int((v+1)/2*n_labels)) for v in DF[col]]
+    if save_path is not None:
+        DF.to_csv(save_path)
+    return DF
+
+
+
+def generate_sequences(DF:pd.DataFrame, seq_len:int, save_path:str|None=None) -> pd.DataFrame:
+    # TODO: this
+    pass
+
+
 
 
 if __name__ == '__main__':
@@ -166,7 +185,7 @@ if __name__ == '__main__':
 
 
     DF = generate_sinusoidal_timeseries(n=100000,
-                                        f=3,
+                                        f=2,
                                         save_path="/data/dataset/data.csv",
                                         freq_range=(1.0, 1.1),
                                         amplitude_range=(0.1, 1.0),
@@ -174,5 +193,9 @@ if __name__ == '__main__':
                                         interaction_strength=0.1,
                                        )
 
-    from utils.plot_utils import plot_process
-    plot_process(DF.to_numpy(), labels=DF.columns, save_picture=True, show_plot=False, folder_path="/data/", title="test")
+    # from utils.plot_utils import plot_process
+    # plot_process(DF.to_numpy(), labels=DF.columns, save_picture=True, show_plot=False, folder_path="/data/", title="test")
+
+    DF = add_label_to_timeseries(DF=DF, n_labels=6, save_path="/data/dataset/data.csv")
+
+    print(DF.head())

@@ -1,14 +1,29 @@
 # TODO
 
 
+- **DATASET**:
+    - dividere train e test set
+    - generare sequenze
+
+
 - **LSTM**:
     - una rete per ogni dimensione
+    - regressione
+    - classificazione
+    - training loop
 
 
 - **GRU**
+    - una rete per ogni dimensione
+    - regressione
+    - classificazione
+    - training loop
 
 
 - **ARIMA**
+    - Trattare le dimensioni in modo indipendente
+    - Trattare più dimensioni insieme
+        - *VAR* sarebbe più accurato? èerché gestisce più dimensioni
 
 
 - **K-FOLD**
@@ -27,3 +42,4 @@
     - Classificatore **LSTM**
     - Classificatore **GRU**
 - Upload dati sul cluster e generazione dell'immagine .sif
+- Discretizzare i dati

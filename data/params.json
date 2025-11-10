@@ -1,21 +1,19 @@
 {
     "n_cores" : 8, // default: 8 
     "verbose" : true,
+    "dataset" : "data.csv",
     
 
-    // Hyper-parameter Optimization
-        // HyperCube Optimization
-    "hypercube_iters" : 50, // how many parameter configurations to try
-        // Nevergrad
-    "nvg_iterations" : 1000000, // (1M)
-    "optimizer_name" : "MultiCobyla",
-    "use_NonObjectOptimizer" : false,
-    "nvg_target_fitness" : 0.0002,
-    "nvg_fitness_limit" : 999999.9,
-    "nvg_tolerance" : 100, // how many continuously worsening attempts to tolerate before hard resetting the optimizer
-    "nvg_time_limit" : 3600, // (1hour) // in seconds
-	// NOMAD
-    // TODO: nomad implementation
+    // Neural Network
+    "seq_len" : 10,
+    "batch_size" : 32,
+        // LSTMs
+    "lstm_num_layers" : 3,
+    "lstm_hidden_size" : 128,
+        // GRUs
+    "gru_num_layers" : 3,
+    "gru_hidden_size" : 128,
+
     
     // Statistical Model Checking (SMC)
     "smc_epsilon" : 0.1, // precision 
@@ -25,6 +23,7 @@
 
 
     // Locations
-    "img_folder" : "/data/img/",
-    "nvg_folder" : "/data/nevergrad/"
+    "dataset_folder" : "/data/dataset/",
+    "lstm_folder" : "/data/LSTM/",
+    "gru_folder" : "/data/GRU/"
 }
