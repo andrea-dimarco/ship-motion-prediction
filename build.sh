@@ -1,7 +1,7 @@
 #!/bin/bash
 
 script_dir=`dirname "$0"`
-image_name="acpsc"
+image_name="ship_pred"
 
 v=false
 while getopts ":hv" flag; do

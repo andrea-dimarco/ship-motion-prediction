@@ -1,9 +1,9 @@
 #!/bin/bash
 
 script_dir=`dirname "$0"`
-image_name="acpsc"
+image_name="ship_pred"
 sound_duration=0.125 # milliseconds
-sound_frequency=246 # Hz (C 3rd Octave)
+sound_frequency=164 # Hz (E 3rd Octave)
 
 
 

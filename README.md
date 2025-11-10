@@ -1,6 +1,6 @@
 # Adaptive CPS Controller
 
-This repository contains the body of work produced by the collaboration between the departments of **Computer Science** and **Ingegneria Aeronautica e Spaziale** in **Sapienza**
+This repository contains the body of work produced by me for the task of predicting SHip Motion/Position while in Sea State 5. 
 
 
 ## How to use 

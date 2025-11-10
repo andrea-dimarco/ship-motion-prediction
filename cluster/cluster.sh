@@ -1,6 +1,6 @@
 #!/bin/bash
 
-project_dir="acpsc"
+project_dir="ship_pred"
 uniroma_user="andrea.dimarco"
 cluster_user="adimarco"
 research_team="raise"

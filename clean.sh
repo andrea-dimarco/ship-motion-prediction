@@ -1,6 +1,6 @@
 #!/bin/bash
 
-image_name="acpsc"
+image_name="ship_pred"
 
 
 echo "Stoping and removing the application containers ..."
