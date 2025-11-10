@@ -1,0 +1,30 @@
+{
+    "n_cores" : 8, // default: 8 
+    "verbose" : true,
+    
+
+    // Hyper-parameter Optimization
+        // HyperCube Optimization
+    "hypercube_iters" : 50, // how many parameter configurations to try
+        // Nevergrad
+    "nvg_iterations" : 1000000, // (1M)
+    "optimizer_name" : "MultiCobyla",
+    "use_NonObjectOptimizer" : false,
+    "nvg_target_fitness" : 0.0002,
+    "nvg_fitness_limit" : 999999.9,
+    "nvg_tolerance" : 100, // how many continuously worsening attempts to tolerate before hard resetting the optimizer
+    "nvg_time_limit" : 3600, // (1hour) // in seconds
+	// NOMAD
+    // TODO: nomad implementation
+    
+    // Statistical Model Checking (SMC)
+    "smc_epsilon" : 0.1, // precision 
+    "smc_delta" : 0.1, // confidence
+    "smc_a" : 0.0, // lower bound of winning probability
+    "smc_b" : 1.0, // upper bound of winning probability
+
+
+    // Locations
+    "img_folder" : "/data/img/",
+    "nvg_folder" : "/data/nevergrad/"
+}

@@ -1,0 +1,27 @@
+# General
+seaborn==0.13.2 # plots
+matplotlib==3.9.2 # plots
+openpyxl==3.1.5 # plots
+# pandas==2.2.3 # .csv files
+progressbar2==4.5.0 # print simple progress bar in standard output
+termcolor==3.0.0 # print colored messages in standard output
+commentjson==0.9.0 # comments in .json files
+# pillow==11.3.0 # .png --> .gif
+ffmpeg-python==0.2.0 # .png --> .mp4
+# argparse==1.4.0 # easily handle inputs from terminal
+lhsmdu==1.1 # latin hypercube optimization
+pyaml==25.7.0 # for yaml files
+
+
+# TimeSeries Analysis
+# statsmodels==0.14.4
+
+
+# Neural Network
+# torch==2.7.1
+# tensorflow==2.19.0
+scikit-learn==1.5.2
+
+
+# BBO
+nevergrad==1.0.12

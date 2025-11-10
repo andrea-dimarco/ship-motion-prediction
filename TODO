@@ -1,0 +1,35 @@
+# TODO
+
+- **PARAMETER ESTIMATION**
+    - Algoritmo da [Scengai](https://bitbucket.org/mclab/scengai/src/scenario-search/)
+        - Nomad
+        - SMC
+    - Nevergrad
+        - Algoritmo
+            - NGOpt
+            - Powell
+        - Vincoli
+    
+
+
+
+## Done 
+
+- Creare la *repository*
+- Impostare il *Dockerfile* e gli script `build.sh`, `clean.sh` e `run.sh`
+- Template Script BBO Nevergrad
+- Ottimizzazione *Nevergrad*
+- Bozza controllore e UAV
+- Simulatore *funzionale*
+- Bozza API Simulatore-**Nevergrad**
+- Funzione obiettivo (errore assoluto medio)
+- Test **Nevergrad** standard
+    - si ferma quando il PC va in standby
+- Test **Nevergrad** custom loop
+    - funziona ma non parallelizza
+- Test `time_limit`
+- Test `tolerance`
+- Embarassing Parallelism nel loop *custom* made da me
+    - Parallelismo con supporto per `time_limit`, `MAX_ITERS`, `tolerance` e `target_fitness`
+    - Prima il parallelismo era supportato solo per `MAX_ITERS`
+- ...

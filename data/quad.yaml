@@ -1,0 +1,30 @@
+#Dati Terra
+air_density: 1.225
+gravity: 9.81
+
+#Dati Elicottero
+mass: 2.0
+Inertia: 
+  I_xx: 0.05
+  I_yy: 0.05
+  I_zz: 0.09
+Area_x: 0.023
+Area_y: 0.023                      
+Area_z: 0.106                                                               
+#Inertia_r: 0.005             inerzia del rotore (c.o. trascuro giroscopio)           
+lunghezza_braccio: 0.5                           
+angolo_cross: 45                     
+b_thrust: 0.03                          
+d_torque: 0.004    
+Coeff trazione massima: 5                                                               
+
+## Parametri del controllore
+Kpos: -25         #Guadagno posizione
+Kvel: -40         #Guadagno velocità
+Kp:    16         #Guadagno angoli
+Kd:     8         #Guadagno velocità angolare
+psi_des: 0        #Yaw desiderato
+
+limite_ang: 0.5236 #pi/6 rad  limite sull'inclinazione degli angoli di assetto
+limite_zddot: 3    #limite sull'accelerazione verticale in discesa                 
+banda_T: 0.9       #banda disponibile alla trazione                
