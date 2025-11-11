@@ -4,6 +4,9 @@ import numpy as np
 
 import utils.utils as utils
 
+import torch
+
+
 
 
 def generate_sinusoidal_timeseries(n:int,
@@ -166,9 +169,70 @@ def add_label_to_timeseries(DF:pd.DataFrame, n_labels:int, save_path:str|None=No
 
 
 
-def generate_sequences(DF:pd.DataFrame, seq_len:int, save_path:str|None=None) -> pd.DataFrame:
-    # TODO: this
-    pass
+def build_sequences(df:pd.DataFrame, seq_len: int, verbose:bool=True) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Build input (X) and target (Y) tensors from a pandas DataFrame for sequence modeling.
+    
+    **Arguments**:
+    - `df` : The input DataFrame containing time-ordered data.
+    - `seq_len` : he length of each input sequence.
+    
+    **Returns**:
+    - `X` : Tensor of shape (num_sequences, seq_len, num_features)
+    - `Y` : Tensor of shape (num_sequences, seq_len, num_features)
+        Same as X but shifted one timestep ahead.
+    """
+    data = df.values.astype('float32')
+    num_sequences = len(data) - seq_len
+    X_list, Y_list = [], []
+    if verbose:
+        print("Composing sequences")
+        bar = utils.BAR(num_sequences)
+    for i in range(num_sequences):
+        X_seq = data[i : i + seq_len]
+        Y_seq = data[i + 1 : i + seq_len + 1]
+        X_list.append(X_seq)
+        Y_list.append(Y_seq)
+        if verbose:
+            bar.update()
+    X = torch.tensor(X_list)
+    Y = torch.tensor(Y_list)
+    return X, Y
+
+
+
+def build_sequences_labels(df:pd.DataFrame, seq_len:int, labels_columns:list[str], verbose:bool=True) -> tuple[torch.Tensor, torch.Tensor]:
+    """
+    Build input (X) and target (Y) tensors from a pandas DataFrame for sequence modeling.
+    
+    **Arguments**:
+    - `df` : The input DataFrame containing time-ordered data.
+    - `seq_len` : he length of each input sequence.
+    
+    **Returns**:
+    - `X` : Tensor of shape (num_sequences, seq_len, num_features)
+    - `Y` : Tensor of shape (num_sequences, seq_len, num_features)
+        Same as X but shifted one timestep ahead.
+    """
+    non_label_columns = list(set(df.columns) - set(labels_columns))
+    num_sequences = len(df) - seq_len
+    NON_LABELS = df[non_label_columns].values.astype('float32')
+    LABELS = df[labels_columns].values.astype('float32')
+    X_list, Y_list = [], []
+    if verbose:
+        print("Composing sequences")
+        bar = utils.BAR(num_sequences)
+    for i in range(num_sequences):
+        X_seq = NON_LABELS[i : i + seq_len]
+        Y_seq = LABELS[i + 1 : i + seq_len + 1]
+        X_list.append(X_seq)
+        Y_list.append(Y_seq)
+        if verbose:
+            bar.update()
+    X = torch.tensor(X_list)
+    Y = torch.tensor(Y_list)
+    return X, Y
+        
 
 
 
@@ -197,5 +261,7 @@ if __name__ == '__main__':
     # plot_process(DF.to_numpy(), labels=DF.columns, save_picture=True, show_plot=False, folder_path="/data/", title="test")
 
     DF = add_label_to_timeseries(DF=DF, n_labels=6, save_path="/data/dataset/data.csv")
+    X, Y = build_sequences_labels(DF, 5, labels_columns=["label_feat_0","label_feat_1"])
 
-    print(DF.head())
+    print(X[0])
+    print(Y[0])

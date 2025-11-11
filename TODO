@@ -43,3 +43,6 @@
     - Classificatore **GRU**
 - Upload dati sul cluster e generazione dell'immagine .sif
 - Discretizzare i dati
+- Costruttore sequenze timeseries
+- Costruttore sequenze con label
+- ...
