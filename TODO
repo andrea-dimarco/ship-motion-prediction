@@ -7,17 +7,11 @@
 
 
 - **LSTM**:
-    - una rete per ogni dimensione
-    - regressione
-    - classificazione
-    - training loop
+    - training & validation classificazione
 
 
 - **GRU**
-    - una rete per ogni dimensione
-    - regressione
-    - classificazione
-    - training loop
+    - training & validation classificazione
 
 
 - **ARIMA**
@@ -45,4 +39,9 @@
 - Discretizzare i dati
 - Costruttore sequenze timeseries
 - Costruttore sequenze con label
+- Costruttore dataset
+- Training modelli regressione
+- Fix training loop
+- Plot predizioni
+- Training di un'unica dimensione per task `REGR`
 - ...

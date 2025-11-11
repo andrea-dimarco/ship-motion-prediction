@@ -13,7 +13,6 @@ class GRURegressor(nn.Module):
         self.hidden_dim = hidden_dim
         self.num_layers = num_layers
         self.batch_first = batch_first
-
         # GRU layer
         self.gru = nn.GRU(
             input_size=in_dim,
@@ -22,7 +21,6 @@ class GRURegressor(nn.Module):
             batch_first=batch_first,
             dropout=dropout if num_layers > 1 else 0.0
         )
-
         # Fully-connected (linear) layer for regression output
         self.fc = nn.Linear(hidden_dim, out_dim)
 
@@ -35,10 +33,8 @@ class GRURegressor(nn.Module):
         # out: (batch_size, seq_len, hidden_dim)
         # h_n: (num_layers, batch_size, hidden_dim)
         out, h_n = self.gru(x)
-
         # Take the last hidden state of the last layer
         last_hidden = h_n[-1]  # shape: (batch_size, hidden_dim)
-
         # Regression output
         output = self.fc(last_hidden)  # shape: (batch_size, out_dim)
         return output

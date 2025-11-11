@@ -1,14 +1,15 @@
 #!/bin/bash
 #
-#SBATCH --job-name=AdptCtrl
+#SBATCH --job-name=ship_pred
 #SBATCH --mail-user=dimarco.a@di.uniroma1.it
 #SBATCH --mail-type=ALL
 #
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=16
+#SBATCH --cpus-per-task=8
+#SBATCH --gpus=1
 #SBATCH --gpus=0
 #SBATCH --mem=8GB
-#SBATCH --time=8:00:00
+#SBATCH --time=16:00:00
 #
 #SBATCH --output=logs/output.out
 #SBATCH --error=logs/error.err

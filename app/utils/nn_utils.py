@@ -4,10 +4,10 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 
-
 import torch
 from torch import nn
 import torch.optim as optim
+from torch.utils import data
 
 from sklearn.metrics import confusion_matrix
 from sklearn import metrics
@@ -15,7 +15,8 @@ from sklearn.metrics import confusion_matrix, roc_auc_score
 from sklearn.metrics import ConfusionMatrixDisplay
 
 
-import utils
+import utils.utils as utils
+from typing import Any
 
 
 
@@ -455,7 +456,6 @@ def init_weights(m):
 
 
 
-
 def train_model(model,
                 X_train:torch.Tensor,
                 y_train:torch.Tensor,
@@ -463,19 +463,19 @@ def train_model(model,
                 y_val:torch.Tensor,
                 n_epochs:int,
                 batch_size:int,
-                device,
+                device:Any|None=None,
                 adam_lr:float=0.01,
                 adam_b1:float=0.75,
                 adam_b2:float=0.90,
                 decay_start:float=1.0,
                 decay_end:float=1.0,
-                plot_loss:bool=False,
-                loss_plot_folder:str="/data/results/img/",
+                loss_plot_folder:str|None=None,
                 model_name:str="DeepModel",
                 loss_fn=nn.CrossEntropyLoss(),
                 val_frequency:int=100,
                 save_folder:str="/data/models/",
                 verbose:bool=True,
+                color:str="blue",
                ):
     '''
     Instanciate, train and return the model the model.
@@ -490,11 +490,17 @@ def train_model(model,
         - `val_frequency`: after how many epochs to run a validation epoch
     '''
     input_size:int = X_train.size()[1]
+    if device is None:
+        device = get_device()
     if verbose:
-        print(f"Using device {device}.")
+        print(f"Using device", end=" ")
+        utils.print_colored(device, color=color, end=".\n")
 
     if verbose:
-        print("Parameters count: ", count_parameters(model))
+        utils.print_colored(model_name, color=color, end="")
+        print(" model has ", end="")
+        utils.print_colored(count_parameters(model), color=color, end="")
+        print(" parameters.")
 
     optimizer = optim.Adam(model.parameters(), lr=adam_lr, betas=(adam_b1, adam_b2))
     lr_scheduler = optim.lr_scheduler.LinearLR(optimizer,
@@ -507,14 +513,17 @@ def train_model(model,
                                    batch_size=batch_size
                                   )
 
+    if loss_plot_folder is not None:
+        loss_history = []
     if verbose:
-        print("Training begins.")
-    loss_history = []
+        print("Training started.")
     if verbose:
         timer = utils.TimeExecution()
         timer.start()
+        full_timer = utils.TimeExecution()
+        full_timer.start()
     for epoch in range(n_epochs):
-        # Training step
+        # TRAINING STEP
         model.train()
         for X_batch, y_batch in train_loader:
             y_pred = model(X_batch.to(device=device))
@@ -522,30 +531,45 @@ def train_model(model,
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
-
-        # Validation step every val_frequency epochs
+        # VALIDATION STEP: every `val_frequency` epochs
         if (epoch % val_frequency) == 0:
             model.eval()
             with torch.no_grad():
+                # loss on TRAINING set
                 y_pred = model(X_train)
                 train_loss = loss_fn(y_pred, y_train)
+                # loss on VALIDATION set
                 y_pred = model(X_val)
                 val_loss = loss_fn(y_pred, y_val)
-                if plot_loss:
+                if loss_plot_folder is not None:
                     loss_history.append(val_loss.item())
             if verbose:
+                # STATUS MESSAGE
                 timer.end()
-                print("Epoch %d/%d: train_loss=%.4f, val_loss=%.4f, lr=%.4f, elapsed_time=%.2fs" % (epoch, n_epochs, train_loss, val_loss, optimizer.param_groups[0]["lr"], timer.elapsed()))
+                print(f"Epoch ", end=" ")
+                utils.print_colored(f"{epoch}/{n_epochs}", highlight=color, end=": ")
+                print("train_loss=", end="")
+                utils.print_colored(round(float(train_loss),5), color=color, end="; ")
+                print("val_loss=", end="")
+                utils.print_colored(round(float(val_loss),5), color=color, end="; ")
+                print("lr=", end="")
+                utils.print_colored(optimizer.param_groups[0]['lr'], color=color, end="; ")
+                print("elapsed_time=", end="")
+                utils.print_colored(str(timer), color=color)
                 timer.start()
         lr_scheduler.step()
-    
-    # Save loss plot
-    if plot_loss:
+    if verbose:
+        full_timer.end()
+        full_timer.print()
+    # PLOT LOSS
+    if loss_plot_folder is not None:
         plt.plot(loss_history, label="validation loss")
+        plt.plot([min(loss_history[:i]) for i in range(1,len(loss_history)+1)], label="Minimum Loss")
+        plt.grid()
+        plt.legend()
         plt.savefig(f"{loss_plot_folder}{model_name}-loss.png")
-
-    # Log the trained model
-    if not (save_folder is None):
+    # SAVE TRAINED MODEL 
+    if save_folder is not None:
         torch.save(model.state_dict(), f"{save_folder}{model_name}.pth")
     return model
 

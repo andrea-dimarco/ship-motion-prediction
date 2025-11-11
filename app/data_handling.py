@@ -65,7 +65,6 @@ def generate_sinusoidal_timeseries(n:int,
 
 
 
-
 def generate_sinusoidal_timeseries_batch(n: int,
                                          f: int,
                                          batch_size: int = 1,
@@ -155,7 +154,6 @@ def generate_sinusoidal_timeseries_batch(n: int,
 
 
 
-
 def add_label_to_timeseries(DF:pd.DataFrame, n_labels:int, save_path:str|None=None) -> pd.DataFrame:
     '''
     Adds a 'label' feature for each dimension of the dataset.
@@ -210,9 +208,8 @@ def build_sequences_labels(df:pd.DataFrame, seq_len:int, labels_columns:list[str
     - `seq_len` : he length of each input sequence.
     
     **Returns**:
-    - `X` : Tensor of shape (num_sequences, seq_len, num_features)
-    - `Y` : Tensor of shape (num_sequences, seq_len, num_features)
-        Same as X but shifted one timestep ahead.
+    - `X` : Timeseries
+    - `Y` : Timeseries of discrete values (labels)
     """
     non_label_columns = list(set(df.columns) - set(labels_columns))
     num_sequences = len(df) - seq_len

@@ -70,8 +70,8 @@ class BAR():
     def reset(self, new_length:int, start_immediately:bool=True) -> None:
         import progressbar
         self.__bar = progressbar.ProgressBar(maxval=new_length,
-                                      widgets=[progressbar.Bar('#', '[', ']'),
-                                               '.',
+                                      widgets=[progressbar.Bar('=', '[', ']'),
+                                               ' ',
                                                progressbar.Percentage()
                                               ]
                                      )
