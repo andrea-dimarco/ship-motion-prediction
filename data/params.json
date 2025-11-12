@@ -40,11 +40,11 @@
     
 
     // Neural Network
-    "n_epochs" : 501, 
+    "n_epochs" : 1001, 
     "batch_size" : 32,
-    "validation_frequency" : 100,
+    "validation_frequency" : 200,
     "seq_len" : 15,
-    "train_test_split" : 0.95, // ratio of sequences in the TRAIN dataset
+    "train_test_split" : 0.90, // ratio of sequences in the TRAIN dataset
     "n_classes" : 8, // only used if 'task' is "CLAS"
         // LSTMs
     "lstm_num_layers" : 1,

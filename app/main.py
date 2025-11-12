@@ -145,6 +145,14 @@ def plot_predictions(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, plot
     plt.figure(figsize=(10, 6))
     plt.plot(y_true, label='Actual', color='black', linewidth=2)
     plt.plot(y_pred, label='Predicted', color='red', linestyle='--')
+    steps = np.arange(0, len(y_true))
+    plt.fill_between(steps, y_true, y_pred,
+                     where=None,       # or a boolean array if you only want some segments
+                     interpolate=True, # helps when lines cross
+                     color='red',
+                     alpha=0.3,
+                     label="Error",
+                    )
     plt.title(title)
     plt.xlabel('Time Step')
     plt.ylabel('Value')
@@ -202,12 +210,14 @@ def multi_step_forecast(model:(...), init_seq:torch.Tensor, n_steps:int=1) -> to
 
 
 
-def multi_step_forecast_plot(model:(...),
-                             X:torch.Tensor,
-                             y:torch.Tensor,
-                             n_steps:int=5,
-                             img_path:str|None=None,
-                            ) -> None:
+def multi_step_forecast_validation(model:(...),
+                                   X:torch.Tensor,
+                                   y:torch.Tensor,
+                                   n_steps:int=5,
+                                   img_path:str|None=None,
+                                   verbose:bool=True,
+                                   color:str="blue",
+                                  ) -> float:
     '''
     Plots the multi-step forecast results
 
@@ -218,26 +228,43 @@ def multi_step_forecast_plot(model:(...),
     - `n_steps` : integer number of future steps to predict
     '''
     # pick batch instance and feature dimension
-    feat = 0
-    y_pred = multi_step_forecast(model, X, n_steps)
-    # convert tensors to numpy if needed
-    y_true_np = y[:,feat].cpu().detach().numpy()   # shape (n_steps,)
-    y_pred_np = y_pred[:,feat].cpu().detach().numpy()   # shape (n_steps,)
+    feat = 0 # TODO: this must be removed as there is only one feature
+    y_pred = multi_step_forecast(model, X, n_steps) # (n_seq, n_steps, out_dim)
 
+    # format data for plot
+    y_true_np = y[n_steps-1:,:].cpu().detach().numpy().reshape(-1) # take the actual value n_steps ahead (-1 because y is already 1 step ahead)
+    y_pred_np = y_pred[:len(y_true_np),-1,:].cpu().detach().numpy().reshape(-1) # (n_seq, out_dim) # NOTE: only take the n_step ahead prediction
+    
     # create x‐axis for steps: you can choose e.g. from 1→n_steps
     steps = np.arange(1, len(y_true_np)+1)
 
-    plt.figure(figsize=(10,6))
-    plt.plot(steps, y_true_np, label='Actual', marker='o')
-    plt.plot(steps, y_pred_np, label='Predicted', marker='x', linestyle='--')
-    plt.xlabel('Future Step')
-    plt.ylabel(f'Feature {feat} value')
-    plt.title('Actual vs Predicted - Multi-step forecast')
-    plt.legend()
-    plt.grid()
-    plt.tight_layout()
     if img_path is not None:
+        plt.figure(figsize=(10,6))
+        plt.plot(steps, y_true_np, label='Actual', marker='o')
+        plt.plot(steps, y_pred_np, label='Predicted', marker='x', linestyle='--')
+        plt.fill_between(steps, y_true_np, y_pred_np,
+                        where=None,       # or a boolean array if you only want some segments
+                        interpolate=True, # helps when lines cross
+                        color='red',
+                        alpha=0.3,
+                        label="Error",
+                        )
+        plt.xlabel('Future Step')
+        plt.ylabel(f'Feature {feat} value')
+        plt.title('Actual vs Predicted - Multi-step forecast')
+        plt.legend()
+        plt.grid()
+        plt.tight_layout()
         plt.savefig(img_path)
+
+    # COMPUTE ERROR
+    error = float(nn.L1Loss()(torch.from_numpy(y_pred_np), torch.from_numpy(y_true_np)))
+    if verbose:
+        print("Forecasting", end=" ")
+        utils.print_colored(n_steps, color=color, end=" ")
+        print("steps ahead gave an error of", end=" ")
+        utils.print_colored(error, color=color)
+    return error
 
 
 
@@ -248,7 +275,7 @@ if __name__ == '__main__':
     
     # PARAMETERS
     color:str = "magenta"
-    plot_limit:int = 200
+    plot_limit:int = 100
     look_ahead:int = 10
 
     params:dict = utils.load_json("/data/params.json")
@@ -315,9 +342,10 @@ if __name__ == '__main__':
                      plot_img=f"{result_folder}/{case_study}-prediction.png",
                     )
     
-    multi_step_forecast_plot(model=model,
-                             X=X_test[:plot_limit],
-                             y=y_test[:plot_limit],
-                             n_steps=look_ahead,
-                             img_path=f"{result_folder}/{case_study}-look_ahead.png",
-                            )
+    multi_step_error = multi_step_forecast_validation(model=model,
+                                                      X=X_test[:plot_limit],
+                                                      y=y_test[:plot_limit],
+                                                      n_steps=look_ahead,
+                                                      img_path=f"{result_folder}/{case_study}-look_ahead.png",
+                                                      color=color,
+                                                     )
