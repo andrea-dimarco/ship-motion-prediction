@@ -517,10 +517,10 @@ def train_model(model,
         loss_history = []
     if verbose:
         print("Training started.")
-        print("\tTest set samples: ", end="")
-        utils.print_colored(X_train.size()[0], color=color)
-        print("\tValidation set samples: ", end="")
-        utils.print_colored(X_val.size()[0], color=color)
+        print("\tTest set shape: ", end="")
+        utils.print_colored(tuple(X_train.size()), color=color)
+        print("\tValidation set shape: ", end="")
+        utils.print_colored(tuple(X_val.size()), color=color)
     if verbose:
         timer = utils.TimeExecution()
         timer.start()

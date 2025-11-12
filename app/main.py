@@ -1,5 +1,6 @@
 
 import pandas as pd
+import numpy as np
 import torch
 from torch import nn
 import matplotlib.pyplot as plt
@@ -167,6 +168,78 @@ def get_loss(task:str) -> (...):
 
 
 
+def multi_step_forecast(model:(...), init_seq:torch.Tensor, n_steps:int=1) -> torch.Tensor:
+    """
+    **Arguments**:
+    - `model` : the trained MyLSTM model
+    - `init_seq` : tensor of shape (`batch`, `seq_len`, `in_dim`) — the last observed input
+    - `n_steps` : integer number of future steps to predict
+    
+    **Returns**:
+    - tensor of shape (batch, n_steps, out_dim)
+    """
+    model.eval()
+    batch, seq_len, in_dim = init_seq.shape
+    predictions = []
+    current_seq = init_seq.clone().detach()
+    hidden = None
+    for step in range(n_steps):
+        # 1) predict next step
+        try:
+            # LSTM
+            y_pred, hidden = model(current_seq, hidden)
+        except TypeError:
+            # GRU
+            y_pred = model(current_seq)
+        # y_pred shape: (batch, out_dim)
+        predictions.append(y_pred.unsqueeze(1))  # (batch,1,out_dim)
+        # 2) prepare the next input sequence by appending y_pred and dropping oldest.
+        # If your input size in_dim == out_dim, you can directly use it; if not, you may need a mapping
+        next_input = y_pred.unsqueeze(1)  # (batch,1,out_dim)
+        # drop first time step, shift sequence left, append next_input
+        current_seq = torch.cat( (current_seq[:,1:,:], next_input), dim=1 )
+    return torch.cat(predictions, dim=1)  # (batch, n_steps, out_dim)
+
+
+
+def multi_step_forecast_plot(model:(...),
+                             X:torch.Tensor,
+                             y:torch.Tensor,
+                             n_steps:int=5,
+                             img_path:str|None=None,
+                            ) -> None:
+    '''
+    Plots the multi-step forecast results
+
+    **Arguments**:
+    - `model` : the trained MyLSTM model
+    - `X` : tensor of shape (`batch`, `seq_len`, `in_dim`)
+    - `y` : tensor of shape (`batch`, `seq_len`, `out_dim`)
+    - `n_steps` : integer number of future steps to predict
+    '''
+    # pick batch instance and feature dimension
+    feat = 0
+    y_pred = multi_step_forecast(model, X, n_steps)
+    # convert tensors to numpy if needed
+    y_true_np = y[:,feat].cpu().detach().numpy()   # shape (n_steps,)
+    y_pred_np = y_pred[:,feat].cpu().detach().numpy()   # shape (n_steps,)
+
+    # create x‐axis for steps: you can choose e.g. from 1→n_steps
+    steps = np.arange(1, len(y_true_np)+1)
+
+    plt.figure(figsize=(10,6))
+    plt.plot(steps, y_true_np, label='Actual', marker='o')
+    plt.plot(steps, y_pred_np, label='Predicted', marker='x', linestyle='--')
+    plt.xlabel('Future Step')
+    plt.ylabel(f'Feature {feat} value')
+    plt.title('Actual vs Predicted - Multi-step forecast')
+    plt.legend()
+    plt.grid()
+    plt.tight_layout()
+    if img_path is not None:
+        plt.savefig(img_path)
+
+
 
 if __name__ == '__main__':
 
@@ -175,6 +248,8 @@ if __name__ == '__main__':
     
     # PARAMETERS
     color:str = "magenta"
+    plot_limit:int = 200
+    look_ahead:int = 10
 
     params:dict = utils.load_json("/data/params.json")
     verbose:bool = params["verbose"]
@@ -235,7 +310,14 @@ if __name__ == '__main__':
                            ) 
     
     plot_predictions(model=model,
-                     X_test=X_test,
-                     y_test=y_test,
+                     X_test=X_test[:plot_limit],
+                     y_test=y_test[:plot_limit],
                      plot_img=f"{result_folder}/{case_study}-prediction.png",
                     )
+    
+    multi_step_forecast_plot(model=model,
+                             X=X_test[:plot_limit],
+                             y=y_test[:plot_limit],
+                             n_steps=look_ahead,
+                             img_path=f"{result_folder}/{case_study}-look_ahead.png",
+                            )

@@ -81,7 +81,13 @@ def add_label_to_timeseries(DF:pd.DataFrame, n_labels:int, label_feature:str, sa
 
 
 
-def build_sequences(df:pd.DataFrame, seq_len:int, X_features:set[str]|None=None, Y_features:set[str]|None=None, verbose:bool=True) -> tuple[torch.Tensor, torch.Tensor]:
+def build_sequences(df:pd.DataFrame,
+                    seq_len:int,
+                    X_features:set[str]|None=None,
+                    Y_features:set[str]|None=None,
+                    verbose:bool=True,
+                    look_ahead:int=1, # TODO: test look_ahead higher than 1
+                   ) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Build input (X) and target (Y) tensors from a pandas DataFrame for sequence modeling.
     
@@ -94,6 +100,7 @@ def build_sequences(df:pd.DataFrame, seq_len:int, X_features:set[str]|None=None,
     - `Y` : Tensor of shape (num_sequences, seq_len, num_features)
         Same as X but shifted one timestep ahead.
     """
+    assert look_ahead > 0
     X = (df[list(X_features) if X_features is not None else df]).values.astype('float32')
     Y = (df[list(Y_features) if Y_features is not None else df]).values.astype('float32')
     assert len(X) == len(Y)
@@ -104,7 +111,7 @@ def build_sequences(df:pd.DataFrame, seq_len:int, X_features:set[str]|None=None,
         bar = utils.BAR(num_sequences)
     for i in range(num_sequences):
         X_seq = X[i : i + seq_len]
-        Y_seq = Y[i + 1 : i + seq_len + 1]
+        Y_seq = Y[i + look_ahead : i + seq_len + look_ahead]
         X_list.append(X_seq)
         Y_list.append(Y_seq)
         if verbose:
