@@ -268,17 +268,7 @@ def multi_step_forecast_validation(model:(...),
 
 
 
-if __name__ == '__main__':
-
-    import warnings
-    warnings.filterwarnings("ignore")
-    
-    # PARAMETERS
-    color:str = "magenta"
-    plot_limit:int = 100
-    look_ahead:int = 10
-
-    params:dict = utils.load_json("/data/params.json")
+def deep_learning_model(params:dict) -> None:
     verbose:bool = params["verbose"]
     case_study:str = f"{params['model']}-{params['task']}"
 
@@ -336,16 +326,71 @@ if __name__ == '__main__':
                             color=color,
                            ) 
     
-    plot_predictions(model=model,
-                     X_test=X_test[:plot_limit],
-                     y_test=y_test[:plot_limit],
-                     plot_img=f"{result_folder}/{case_study}-prediction.png",
-                    )
+    if params['task'] == 'REGR':
+        plot_predictions(model=model,
+                        X_test=X_test[:plot_limit],
+                        y_test=y_test[:plot_limit],
+                        plot_img=f"{result_folder}/{case_study}-prediction.png",
+                        )
+        
+        multi_step_error = multi_step_forecast_validation(model=model,
+                                                        X=X_test[:plot_limit],
+                                                        y=y_test[:plot_limit],
+                                                        n_steps=look_ahead,
+                                                        img_path=f"{result_folder}/{case_study}-look_ahead.png",
+                                                        color=color,
+                                                        )
+    elif params['task'] == 'CLAS':
+        pass
+    else:
+        raise ValueError(f"Unsupported task ({params['task']})")
+
+
+
+def timeseries_analysis(params:dict) -> None:
+    verbose:bool = params['verbose']
+    import utils.timeseries_utils as tsu
+
+    features = params['input_features']
+    if verbose:
+        utils.print_colored(f"SHIP-MOTION PREDICTION (TIMESERIES)", highlight=color)
+        print("Features:")
+        utils.print_two_column(params['input_features'], color=color)
     
-    multi_step_error = multi_step_forecast_validation(model=model,
-                                                      X=X_test[:plot_limit],
-                                                      y=y_test[:plot_limit],
-                                                      n_steps=look_ahead,
-                                                      img_path=f"{result_folder}/{case_study}-look_ahead.png",
-                                                      color=color,
-                                                     )
+    # RAW DATA
+    import data_handling as dh
+    DF = dh.load_dataset(f"{params['dataset_folder']}/{params['dataset']}",
+                         features=set(features),
+                         verbose=verbose,
+                         normalize=True,
+                        )
+    # STATIONARITY
+    # assert len(params['input_features']) == 1
+    stationarity_info = tsu.non_stationary_features_list(multivariate_timeseries=DF.to_numpy(),
+                                                         features=list(DF.columns),
+                                                         detailed_info=True,
+                                                         verbose=True
+                                                        )
+    
+    cointegration = tsu.check_multivariate_cointegration(multivariate_timeseries=DF.to_numpy(),
+                                                         features=list(DF.columns),
+                                                         verbose=verbose,
+                                                         color=color,
+                                                        )
+
+
+
+if __name__ == '__main__':
+
+    import warnings
+    warnings.filterwarnings("ignore")
+    
+    # PARAMETERS
+    color:str = "magenta"
+    plot_limit:int = 100
+    look_ahead:int = 10
+
+    params:dict = utils.load_json("/data/params.json")
+    
+    # deep_learning_model(params)
+    timeseries_analysis(params)

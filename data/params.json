@@ -9,12 +9,12 @@
     // Environment
     "input_features" : [
                         // "time", "zeta",
-                            // "RefX", "RefY", "RefZ",
+                            "RefX", "RefY", "RefZ",
                         // "CogX", "CogY", "CogZ",
-                            // "Roll", "Pitch", "Yaw",
-                            // "RefUspace", 
-                        "RefVspace"
-                            // "RefWspace"
+                            "Roll", "Pitch", "Yaw",
+                            "RefUspace", 
+                            "RefVspace",
+                            "RefWspace"
                         // "CogUspace", "CogVspace", "CogWspace",
                         // "Pspace", "Qspace", "Rspace",
                         // "CogUbody", "CogVbody", "CogWbody",
@@ -43,7 +43,7 @@
     "n_epochs" : 1001, 
     "batch_size" : 32,
     "validation_frequency" : 200,
-    "seq_len" : 15,
+    "seq_len" : 100,
     "train_test_split" : 0.90, // ratio of sequences in the TRAIN dataset
     "n_classes" : 8, // only used if 'task' is "CLAS"
         // LSTMs
@@ -51,7 +51,7 @@
     "lstm_hidden_dim" : 8,
         // GRUs
     "gru_num_layers" : 1,
-    "gru_hidden_dim" : 8,
+    "gru_hidden_dim" : 4,
         // Adam Optimizer
     "adam_lr" : 0.005, // learning rate
     "adam_b1" : 0.75,

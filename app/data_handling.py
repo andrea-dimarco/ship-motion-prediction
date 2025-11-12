@@ -196,7 +196,7 @@ def load_dataset(file_path:str,
     Loads the data from the ship-state simulations stored in `file_path` 
     '''
     if verbose:
-        print(f"Loading data from '{file_path}' ...", end="")
+        print(f"Loading data from '{file_path}' ... ", end="")
     DF = dfu.get_dataframe(file_path=file_path)
     if verbose:
         print("done.")
@@ -219,7 +219,7 @@ def load_dataset(file_path:str,
     if normalize:
         if verbose:
             print("Normalizing data (min-max) ... ", end="")
-        DF = (DF - DF.min()) / (DF.max() - DF.min())
+        DF = ((DF - DF.min()) / (DF.max() - DF.min()))*2 -1
         if verbose:
             print("done.")
     return DF

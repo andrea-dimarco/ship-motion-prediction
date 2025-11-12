@@ -1,7 +1,5 @@
 # project libraries
-from db_api import SIATE_DB_API
-import utils
-from hyperparameters import Config
+import utils.utils as utils
 
 # internal libraries
 import datetime
@@ -207,9 +205,14 @@ def ith_diff_timeseries(timeseries:np.ndarray, i:int=1) -> pd.Series:
 
 
 
-def non_stationary_features_list(multivariate_timeseries:pd.Series|np.ndarray, features:list[str], detailed_info:bool=False, verbose:bool=False) -> list[str]|list[tuple[str,int]]:
+def non_stationary_features_list(multivariate_timeseries:pd.Series|np.ndarray,
+                                 features:list[str],
+                                 detailed_info:bool=False,
+                                 verbose:bool=False
+                                ) -> list[str]|list[tuple[str,int]]:
     '''
     If `detailed_info` returns a list of tuples `(feature_name, nonstationarity_type)`
+    Else returns a list of **non** stationary features
     '''
     non_stationary_features:list[str] = list()
     if verbose:
@@ -253,11 +256,14 @@ def adf_test(timeseries:pd.Series|np.ndarray, verbose:bool=False) -> pd.Series:
 
 
 
-
 def kpss_test(timeseries:pd.Series|np.ndarray, verbose:bool=False) -> pd.Series:
     '''
     CHeck for stationarities around deterministic trends
     '''
+    import warnings
+    from statsmodels.tools.sm_exceptions import InterpolationWarning
+    # Ignore only the InterpolationWarning (and keep other warnings)
+    warnings.filterwarnings("ignore", category=InterpolationWarning)
     if verbose:
         print("Results of KPSS Test:")
     kpsstest = kpss(timeseries, regression="c")#, nlags="auto")
@@ -274,7 +280,7 @@ def kpss_test(timeseries:pd.Series|np.ndarray, verbose:bool=False) -> pd.Series:
 
 def check_cointegration(series_1:pd.Series|np.ndarray, series_2:pd.Series|np.ndarray, verbose:bool=False) -> bool:
     '''
-    Check if the pair of tiemseries can be cointegrated.
+    Check if the pair of timeseries can be cointegrated.
     '''
     old_test = OLS(series_1, series_2).fit()
     result = adfuller(old_test.resid)
@@ -291,3 +297,24 @@ def check_cointegration(series_1:pd.Series|np.ndarray, series_2:pd.Series|np.nda
         return False
     
 
+
+def check_multivariate_cointegration(multivariate_timeseries:pd.Series|np.ndarray,
+                                     features:list[str],
+                                     verbose:bool=False,
+                                     color:str="blue",
+                                    ) -> list[tuple[str,str]]:
+    '''
+    Check every pair of features and returns a list of cointegrated features
+    '''
+    cointegrated:list[tuple[str,str]] = list()
+    for i in range(len(features)-1):
+        for j in range(i+1, len(features)):
+            if check_cointegration(series_1=multivariate_timeseries[:,i],
+                                   series_2=multivariate_timeseries[:,j],
+                                   verbose=False,
+                                   ):
+                cointegrated.append( (features[i],features[j]) )
+    if verbose:
+        print("The following parameters are cointegrated")
+        utils.print_two_column(cointegrated, color=color)
+    return cointegrated
