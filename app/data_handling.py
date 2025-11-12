@@ -1,10 +1,15 @@
 
 import pandas as pd
 import numpy as np
+import torch
+import torch.nn.functional as F
+
 
 import utils.utils as utils
+import utils.df_utils as dfu
 
-import torch
+
+
 
 
 
@@ -65,109 +70,18 @@ def generate_sinusoidal_timeseries(n:int,
 
 
 
-def generate_sinusoidal_timeseries_batch(n: int,
-                                         f: int,
-                                         batch_size: int = 1,
-                                         freq_range=(0.1, 1.0),
-                                         amplitude_range=(0.5, 2.0),
-                                         phase_range=(0, 2*np.pi),
-                                         interaction_strength=0.1,
-                                         trend_slope_range=(0.0, 0.1),
-                                         seasonal_amplitude_range=(0.0, 1.0),
-                                         seasonal_period_range=(10, 100),
-                                         noise_std_range=(0.0, 0.1),
-                                         seed:int|None=None) -> pd.DataFrame:
-    '''
-    Generate a batch of synthetic multivariate time-series with:
-      - `batch_size` independent series,
-      - each series has `n` time-steps and `f` features,
-      - each feature is a sinusoid + trend + seasonal component + noise,
-      - plus minor interactions between features.
-
-    Returns a pandas DataFrame of shape (`batch_size * n`, `f + metadata`) with a MultiIndex
-    (series_id, time_index) or columns denoting series, etc.
-
-    **Arguments**:
-    - `n` : Number of time-steps per series.
-    - `f` : Number of features per series.
-    - `batch_size` : How many independent series to generate.
-    - `freq_range` : Range (min, max) of base frequencies for the sinusoids (in cycles per series length).
-    - `amplitude_range` : Range of amplitudes for the sinusoids.
-    - `phase_range` : Range of starting phases (radians) for the sinusoids.
-    - `interaction_strength` : Coupling strength between features (0 means independent).
-    - `trend_slope_range` : Range of linear trend slopes per feature.
-    - `seasonal_amplitude_range` : Range of amplitude for an additional seasonal (lower-frequency) sinusoid.
-    - `seasonal_period_range` : Range of periods (in number of time-steps) for the seasonal component.
-    - `noise_std_range` : Range of standard deviation for additive Gaussian noise per feature.
-    - `seed` : Seed for reproducibility.
-
-    **Returns**:
-    - `df` : A DataFrame with MultiIndex (series_id, t) and columns feat_0 … feat_{f-1}.
-    '''
-    rng = np.random.default_rng(seed)
-    # Create time axis 0..n-1
-    t = np.arange(n)
-    # Prepare storage: (batch_size, n, f)
-    X_batch = np.zeros((batch_size, n, f), dtype=float)
-    for b in range(batch_size):
-        # draw base sinusoid params per feature
-        freqs = rng.uniform(freq_range[0], freq_range[1], size=f)
-        amps = rng.uniform(amplitude_range[0], amplitude_range[1], size=f)
-        phases = rng.uniform(phase_range[0], phase_range[1], size=f)
-        # trend params
-        slopes = rng.uniform(trend_slope_range[0], trend_slope_range[1], size=f)
-        # seasonal params (one extra slower sinusoid per feature)
-        seasonal_amps = rng.uniform(seasonal_amplitude_range[0],
-                                    seasonal_amplitude_range[1], size=f)
-        seasonal_periods = rng.integers(seasonal_period_range[0],
-                                         seasonal_period_range[1]+1,
-                                         size=f)
-        # noise std
-        noise_stds = rng.uniform(noise_std_range[0], noise_std_range[1], size=f)
-        # base X
-        X = np.zeros((n, f), dtype=float)
-        for i in range(f):
-            # sinusoid
-            X[:, i] = amps[i] * np.sin(2 * np.pi * freqs[i] * t + phases[i])
-            # trend (linear)
-            X[:, i] += slopes[i] * t
-            # seasonal slow wave
-            X[:, i] += seasonal_amps[i] * np.sin(2 * np.pi * t / seasonal_periods[i])
-            # noise
-            X[:, i] += rng.normal(loc=0.0, scale=noise_stds[i], size=n)
-        # interactions: minor coupling via mean of other features
-        if interaction_strength > 0 and f > 1:
-            other_mean = (X.sum(axis=1, keepdims=True) - X) / (f - 1)
-            X = X + interaction_strength * other_mean
-        X_batch[b] = X
-    # Now flatten into DataFrame
-    # Create MultiIndex: series_id (0..batch_size-1), time (0..n-1)
-    series_ids = np.repeat(np.arange(batch_size), n)
-    times = np.tile(t, batch_size)
-    multi_idx = pd.MultiIndex.from_arrays([series_ids, times],
-                                          names=("series_id", "time_step"))
-    # Flatten X_batch to shape (batch_size*n, f)
-    X_flat = X_batch.reshape(batch_size * n, f)
-    col_names = [f"feat_{i}" for i in range(f)]
-    df = pd.DataFrame(X_flat, index=multi_idx, columns=col_names)
-    return df
-
-
-
-def add_label_to_timeseries(DF:pd.DataFrame, n_labels:int, save_path:str|None=None) -> pd.DataFrame:
+def add_label_to_timeseries(DF:pd.DataFrame, n_labels:int, label_feature:str, save_path:str|None=None) -> pd.DataFrame:
     '''
     Adds a 'label' feature for each dimension of the dataset.
     '''
-    for col in DF.columns:
-        new_col_name = f"label_{col}"
-        DF[new_col_name] = [min(n_labels-1,int((v+1)/2*n_labels)) for v in DF[col]]
+    DF[f"label_{label_feature}"] = [min(n_labels-1,int((v+1)/2*n_labels)) for v in DF[label_feature]]
     if save_path is not None:
         DF.to_csv(save_path)
     return DF
 
 
 
-def build_sequences(df:pd.DataFrame, seq_len: int, verbose:bool=True) -> tuple[torch.Tensor, torch.Tensor]:
+def build_sequences(df:pd.DataFrame, seq_len:int, X_features:set[str]|None=None, Y_features:set[str]|None=None, verbose:bool=True) -> tuple[torch.Tensor, torch.Tensor]:
     """
     Build input (X) and target (Y) tensors from a pandas DataFrame for sequence modeling.
     
@@ -180,15 +94,17 @@ def build_sequences(df:pd.DataFrame, seq_len: int, verbose:bool=True) -> tuple[t
     - `Y` : Tensor of shape (num_sequences, seq_len, num_features)
         Same as X but shifted one timestep ahead.
     """
-    data = df.values.astype('float32')
-    num_sequences = len(data) - seq_len
+    X = (df[list(X_features) if X_features is not None else df]).values.astype('float32')
+    Y = (df[list(Y_features) if Y_features is not None else df]).values.astype('float32')
+    assert len(X) == len(Y)
+    num_sequences = len(X) - seq_len
     X_list, Y_list = [], []
     if verbose:
         print("Composing sequences")
         bar = utils.BAR(num_sequences)
     for i in range(num_sequences):
-        X_seq = data[i : i + seq_len]
-        Y_seq = data[i + 1 : i + seq_len + 1]
+        X_seq = X[i : i + seq_len]
+        Y_seq = Y[i + 1 : i + seq_len + 1]
         X_list.append(X_seq)
         Y_list.append(Y_seq)
         if verbose:
@@ -232,6 +148,78 @@ def build_sequences_labels(df:pd.DataFrame, seq_len:int, labels_columns:list[str
         
 
 
+def class_to_one_hot(idx:int, num_classes:int, device=None, dtype=torch.float32) -> torch.Tensor:
+    """
+    Convert a single integer `idx` into a one-hot vector of size `num_classes`.
+    """
+    if idx < 0 or idx >= num_classes:
+        raise ValueError(f"idx must be in [0, {num_classes-1}], got {idx}")
+    # create a tensor with the index
+    t = torch.tensor(idx, dtype=torch.long, device=device)
+    one_hot = F.one_hot(t, num_classes=num_classes)  # uses torch.nn.functional.one_hot :contentReference[oaicite:0]{index=0}
+    return one_hot.to(dtype)
+
+
+
+def tensor_seq_to_one_hot(input_tensor:torch.Tensor, num_classes:int) -> torch.Tensor:
+    """
+    Convert a tensor of shape (n_sequences, seq_len, 1) where each entry is an integer in [0, num_classes-1]
+    into a one-hot encoded tensor of shape (n_sequences, seq_len, num_classes).
+    """
+    # check shape
+    if input_tensor.ndim != 3 or input_tensor.size(-1) != 1:
+        raise ValueError(f"input_tensor must have shape (n_sequences, seq_len, 1); got {input_tensor.shape}")
+    
+    # flatten the last dim
+    indices = input_tensor.squeeze(-1).long()  # shape becomes (n_sequences, seq_len)
+    # do one_hot: result shape (n_sequences, seq_len, num_classes)
+    one_hot = F.one_hot(indices, num_classes=num_classes)
+    # optionally convert type to float if you plan to feed into a network
+    return one_hot.float()
+
+
+
+def load_dataset(file_path:str,
+                 features:set|None=None,
+                 time_column:str='time',
+                 normalize:bool=True,
+                 verbose:bool=True
+                ) -> pd.DataFrame:
+    '''
+    Loads the data from the ship-state simulations stored in `file_path` 
+    '''
+    if verbose:
+        print(f"Loading data from '{file_path}' ...", end="")
+    DF = dfu.get_dataframe(file_path=file_path)
+    if verbose:
+        print("done.")
+    # Only get meaningful data
+    if features is not None:
+        if verbose:
+            print("Extracting features ... ", end="")
+        DF = DF[list(features)] if time_column in features else DF[list(features) + [time_column]]
+        if verbose:
+            print("done.")
+    # first row is the unit of measurement
+    DF = DF[1:].astype(float)
+    if verbose:
+        print("Sorting samples ... ", end="")
+    DF.sort_values([time_column], inplace=True)
+    if verbose:
+        print("done.")
+    if time_column not in features:
+        DF.drop(columns=[time_column], inplace=True)
+    if normalize:
+        if verbose:
+            print("Normalizing data (min-max) ... ", end="")
+        DF = (DF - DF.min()) / (DF.max() - DF.min())
+        if verbose:
+            print("done.")
+    return DF
+
+
+
+
 
 
 if __name__ == '__main__':
@@ -245,20 +233,14 @@ if __name__ == '__main__':
     params:dict = utils.load_json("/data/params.json")
 
 
-    DF = generate_sinusoidal_timeseries(n=100000,
-                                        f=2,
-                                        save_path="/data/dataset/data.csv",
-                                        freq_range=(1.0, 1.1),
-                                        amplitude_range=(0.1, 1.0),
-                                        phase_range=(0.0, 1*np.pi),
-                                        interaction_strength=0.1,
-                                       )
-
-    # from utils.plot_utils import plot_process
-    # plot_process(DF.to_numpy(), labels=DF.columns, save_picture=True, show_plot=False, folder_path="/data/", title="test")
-
-    DF = add_label_to_timeseries(DF=DF, n_labels=6, save_path="/data/dataset/data.csv")
-    X, Y = build_sequences_labels(DF, 5, labels_columns=["label_feat_0","label_feat_1"])
-
-    print(X[0])
-    print(Y[0])
+    DF = load_dataset(file_path=f"{params['dataset_folder']}/{params['dataset']}",
+                      features=set(params['input_features']),
+                     )
+    
+    import utils.plot_utils as pl
+    pl.plot_processes(samples=DF.to_numpy(),
+                      labels=params['input_features'],
+                      folder_path=params['img_folder'],
+                      title=params['dataset'],
+                      img_name=params['dataset'],
+                     )

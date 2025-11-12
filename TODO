@@ -2,8 +2,8 @@
 
 
 - **DATASET**:
-    - dividere train e test set
-    - generare sequenze
+    - fare un plot per visualizzare gli errori di classificazione
+        - multi-class confusion matrix va bene uguale
 
 
 - **LSTM**:
@@ -44,4 +44,8 @@
 - Fix training loop
 - Plot predizioni
 - Training di un'unica dimensione per task `REGR`
+- Load del dataset dalle simulazioni
+- Sequenze dataset dalle simulazioni
+- Normalizzazione dati simulazione
+- Training loop per `REGR` di `GRU` e `LSTM` con dati delle simulazioni
 - ...

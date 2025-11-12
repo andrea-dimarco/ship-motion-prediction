@@ -1,9 +1,39 @@
 {
     "n_cores" : 8, // default: 8 
     "verbose" : true,
-    "dataset" : "data.csv",
-    "model" : "LSTM", // LSTM or GRU
+    "dataset" : "Hs2_5-Tp10_0.csv", // "Hs4_0-Tp6_0.csv",
+    "model" : "GRU", // LSTM or GRU
     "task" : "REGR", // Regression (REGR) or classification (CLAS)
+
+    // Environment
+    "input_features" : [
+                        // "time", "zeta",
+                            // "RefX", "RefY", "RefZ",
+                        // "CogX", "CogY", "CogZ",
+                        "Roll", "Pitch", "Yaw",
+                        "RefUspace", "RefVspace", "RefWspace"
+                        // "CogUspace", "CogVspace", "CogWspace",
+                        // "Pspace", "Qspace", "Rspace",
+                        // "CogUbody", "CogVbody", "CogWbody",
+                        // "Pbody", "Qbody", "Rbody",
+                        // "Dir", "Height",
+                        // "PeakPeriod"
+                       ],
+    "output_features" : [
+                        //  "time", "zeta",
+                        //  "RefX", "RefY", "RefZ",
+                         // "CogX", "CogY", "CogZ",
+                        //  "Roll", "Pitch", "Yaw",
+                        //  "RefUspace", 
+                         "RefVspace"
+                        //  "RefWspace"
+                         // "CogUspace", "CogVspace", "CogWspace",
+                         // "Pspace", "Qspace", "Rspace",
+                         // "CogUbody", "CogVbody", "CogWbody",
+                         // "Pbody", "Qbody", "Rbody",
+                         // "Dir", "Height",
+                         // "PeakPeriod"
+                       ],
     
 
     // Neural Network
@@ -11,7 +41,7 @@
     "batch_size" : 32,
     "validation_frequency" : 500,
     "seq_len" : 10,
-    "train_test_split" : 0.95, // ratio of sequences in the TRAIN dataset
+    "train_test_split" : 0.90, // ratio of sequences in the TRAIN dataset
     "n_classes" : 8, // only used if 'task' is "CLAS"
         // LSTMs
     "lstm_num_layers" : 1,

@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 
-from utils import print_colored, print_dict, BAR, TimeExecution
+from utils.utils import print_colored, print_dict, BAR, TimeExecution
 
 
 

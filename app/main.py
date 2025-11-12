@@ -48,7 +48,11 @@ def get_predictor(type:Literal['LSTM','GRU'],
                                )
         elif task == 'CLAS':
             from networks.GRU_classifier import GRUClassifier
-            return GRUClassifier()
+            return GRUClassifier(in_dim=input_dim,
+                                 out_dim=output_dim,
+                                 num_layers=num_layers,
+                                 hidden_dim=hidden_dim,
+                                )
         else:
             raise ValueError(f"Unsupported task ({task})")
         
@@ -59,35 +63,38 @@ def get_predictor(type:Literal['LSTM','GRU'],
 
 def get_data(task:Literal['REGR','CLAS'],
              seq_len:int,
-             chosen_dim:int|None=0,
+             dataset_file:str,
+             in_features:set[str],
+             out_features:set[str]|None=None,
              n_labels:int|None=None,
              verbose:bool=True
             ) -> tuple[torch.Tensor,torch.Tensor]:
     import data_handling as dh
     from numpy import pi
-    DF = dh.generate_sinusoidal_timeseries(n=10000,
-                                           f=3,
-                                           freq_range=(1.0, 1.1),
-                                           amplitude_range=(0.1, 1.0),
-                                           phase_range=(0.0, 1*pi),
-                                           interaction_strength=0.1,
-                                          )
+    if out_features is None:
+        out_features = in_features.copy()
+    DF = dh.load_dataset(file_path=dataset_file,
+                         features=in_features.union(out_features),
+                         verbose=verbose,
+                         normalize=True,
+                        )
     if task == 'REGR':
         X, Y = dh.build_sequences(df=DF,
+                                  X_features=in_features,
+                                  Y_features=out_features,
                                   seq_len=seq_len,
                                   verbose=verbose
                                  )
-        if chosen_dim is not None:
-            Y = X[:, :, chosen_dim] #  this yields shape (n_sequences, seq_length)
-            Y = Y.unsqueeze(-1) # convert to (n_sequences, seq_length, 1)
     elif task == 'CLAS':
-        DF = dh.add_label_to_timeseries(DF, n_labels=n_labels)
+        assert len(out_features) == 1, "Multi-label samples are not supported (yet)"
+        label_feature = list(out_features)[0]
+        DF = dh.add_label_to_timeseries(DF, n_labels=n_labels, label_feature=label_feature)
         X, Y = dh.build_sequences_labels(df=DF,
                                          seq_len=seq_len,
-                                         labels_columns=[c for c in list(DF.columns) if 'label' in c],
+                                         labels_columns=[f'label_{label_feature}'],
                                          verbose=verbose
                                         )
-        # TODO: Y must only have one-hot-encoding of a single class
+        Y = dh.tensor_seq_to_one_hot(Y, num_classes=n_labels)
     else:
         raise ValueError(f"Unsupported task ({task})")
     # only get last element of sequence for training
@@ -110,7 +117,6 @@ def train_test_split(X:torch.Tensor, y:torch.Tensor, split:float=0.75) -> tuple[
     y_test = y[split_index:]
 
     return X_train, y_train, X_test, y_test
-
 
 
 
@@ -169,7 +175,6 @@ if __name__ == '__main__':
     
     # PARAMETERS
     color:str = "magenta"
-    model_regr_dim:int = 1
 
     params:dict = utils.load_json("/data/params.json")
     verbose:bool = params["verbose"]
@@ -177,15 +182,27 @@ if __name__ == '__main__':
 
     if verbose:
         utils.print_colored(f"SHIP-MOTION PREDICTION ({case_study})", highlight=color)
+        print("Input Features:")
+        utils.print_two_column(params['input_features'], color=color)
+        print("Output Features")
+        utils.print_two_column(params['output_features'], color=color)
     
-    X, Y = get_data(task=params['task'], seq_len=params['seq_len'], n_labels=params['n_classes'], verbose=verbose)
+    X, Y = get_data(task=params['task'],
+                    seq_len=params['seq_len'],
+                    dataset_file=f"{params['dataset_folder']}/{params['dataset']}",
+                    in_features=set(params['input_features']),
+                    out_features=set(params['output_features']),
+                    n_labels=params['n_classes'],
+                    verbose=verbose
+                   )
+    X_train, y_train, X_test, y_test = train_test_split(X=X, y=Y, split=params['train_test_split'])
 
     if verbose:
         print(f"Retrieving model for ", end="")
         utils.print_colored(case_study, color=color, end=" ... ")
 
-    model = get_predictor(input_dim=3, # TODO: this will change with the actual data
-                          output_dim=model_regr_dim if params['task'] == 'REGR' else params['n_classes'],
+    model = get_predictor(input_dim=len(params['input_features']), # TODO: this will change with the actual data
+                          output_dim=len(params['output_features']) if params['task'] == 'REGR' else params['n_classes'],
                           type=params['model'],
                           task=params['task'],
                           hidden_dim=params['lstm_hidden_dim'] if params['model'] == 'LSTM' else params['gru_hidden_dim'],
@@ -193,8 +210,6 @@ if __name__ == '__main__':
                          )
     if verbose:
         print("done.")
-
-    X_train, y_train, X_test, y_test = train_test_split(X=X, y=Y, split=params['train_test_split'])
 
     result_folder:str = params['lstm_folder'] if params['model'] == 'LSTM' else params['gru_folder']
     

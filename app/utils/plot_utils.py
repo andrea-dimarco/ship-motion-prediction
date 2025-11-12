@@ -136,33 +136,34 @@ def compare_sequences(real:np.ndarray, fake:np.ndarray,
 
 
 
-def plot_process(samples:np.ndarray, labels:list[str]|None=None,
-                 save_picture=False, show_plot=True,
-                 img_idx=0, img_name:str="plot",
-                 folder_path:str=None,
-                 title:str=None) -> None:
+def plot_processes(samples:np.ndarray, labels:list[str]|None=None,
+                 img_name:str="plot",
+                 folder_path:str|None=None,
+                 show_plot:bool=False,
+                 title:str=None,
+                 dpi:int=100,
+                ) -> None:
     '''
     Plots all the dimensions of the generated dataset.
     '''
-    if save_picture or show_plot:
-        for i in range(samples.shape[1]):
-            if labels is not None:
-                plt.plot(samples[:,i], label=labels[i])
-            else:
-                plt.plot(samples[:,i])
-
-        # giving a title to my graph 
+    assert folder_path is not None or show_plot
+    for i in range(samples.shape[1]):
         if labels is not None:
-            plt.legend()
-        if title:
-            plt.title(title)
-        plt.grid()
-        # function to show the plot 
-        if save_picture:
-            plt.savefig(f"{folder_path}{img_name}-{img_idx}.png")
-        if show_plot:
-            plt.show()
-        plt.clf()
+            plt.plot(samples[:,i], label=labels[i])
+        else:
+            plt.plot(samples[:,i])
+    # giving a title to my graph 
+    if labels is not None:
+        plt.legend()
+    if title is not None:
+        plt.title(title)
+    plt.grid()
+    # function to show the plot 
+    if folder_path is not None:
+        plt.savefig(f"{folder_path}{img_name}.png", dpi=dpi)
+    if show_plot:
+        plt.show()
+    plt.clf()
 
 
 
