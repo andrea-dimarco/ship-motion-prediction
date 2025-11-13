@@ -4,69 +4,54 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from typing import Literal
 
 import utils.utils as utils
 import utils.df_utils as dfu
 
 
 
+def get_data(task:Literal['REGR','CLAS'],
+             seq_len:int,
+             dataset_file:str,
+             in_features:set[str],
+             out_features:set[str]|None=None,
+             n_labels:int|None=None,
+             verbose:bool=True
+            ) -> tuple[torch.Tensor,torch.Tensor]:
+    import data_handling as dh
+    from numpy import pi
+    if out_features is None:
+        out_features = in_features.copy()
+    DF = dh.load_dataset(file_path=dataset_file,
+                         features=in_features.union(out_features),
+                         verbose=verbose,
+                         normalize=True,
+                        )
+    if task == 'REGR':
+        X, Y = dh.build_sequences(df=DF,
+                                  X_features=in_features,
+                                  Y_features=out_features,
+                                  seq_len=seq_len,
+                                  verbose=verbose
+                                 )
+    elif task == 'CLAS':
+        assert len(out_features) == 1, "Multi-label samples are not supported (yet)"
+        label_feature = list(out_features)[0]
+        DF = dh.add_label_to_timeseries(DF, n_labels=n_labels, label_feature=label_feature)
+        X, Y = dh.build_sequences_labels(df=DF,
+                                         seq_len=seq_len,
+                                         labels_columns=[f'label_{label_feature}'],
+                                         verbose=verbose
+                                        )
+        Y = dh.tensor_seq_to_one_hot(Y, num_classes=n_labels)
+    else:
+        raise ValueError(f"Unsupported task ({task})")
+    # only get last element of sequence for training
+    Y = Y[:, -1, :]  # shape (n_sequences, sample_size)
+    return X, Y
+    
 
-
-
-
-def generate_sinusoidal_timeseries(n:int,
-                                   f:int,
-                                   freq_range:tuple[float,float]=(0.1, 1.0),
-                                   amplitude_range:tuple[float,float]=(0.5, 2.0),
-                                   phase_range:tuple[float,float]=(0, 2*np.pi),
-                                   interaction_strength:float=0.1,
-                                   seed:int|None=None,
-                                   save_path:str|None=None,
-                                  ) -> pd.DataFrame:
-    '''
-    Generate a DataFrame of shape (n, f) where each column is a sinusoid
-    and features slightly interact with one another.
-
-    **Arguments**:
-    - `n` : Number of time-steps (samples).
-    - `f` : Number of features.
-    - `freq_range` : Min and max base frequency for each feature (in cycles per unit time).
-    - `amplitude_range` : Min and max amplitude for each feature.
-    - `phase_range` : Min and max phase (in radians) for each feature.
-    - `interaction_strength` : Strength of coupling between features (0 means independent, larger means more coupling).
-    - `seed` : Seed for reproducibility.
-    - `save_path` : where to save the timeseries as a .csv file, if no path is provided then the dataframe is not saved
-
-    **Returns**:
-    - `df` : DataFrame with columns *“feat_0”*, *“feat_1”*, …, *“feat_{f-1}*”
-    '''
-    rng = np.random.default_rng(seed=seed)
-    # time axis
-    t = np.arange(n)
-
-    # base parameters for each feature
-    freqs = rng.uniform(freq_range[0], freq_range[1], size=f)
-    amps = rng.uniform(amplitude_range[0], amplitude_range[1], size=f)
-    phases = rng.uniform(phase_range[0], phase_range[1], size=f)
-
-    # generate independent sinusoids
-    X = np.zeros((n, f), dtype=float)
-    for i in range(f):
-        X[:, i] = amps[i] * np.sin(2 * np.pi * freqs[i] * t + phases[i])
-
-    # add small cross‐feature interactions
-    if interaction_strength > 0:
-        # simple linear mixing of features: each feature gets a small addition
-        # from the average of the other features
-        other_mean = (X.sum(axis=1, keepdims=True) - X) / (f - 1)
-        X = X + interaction_strength*other_mean
-
-    # wrap in pandas DataFrame
-    col_names = [f"feat_{i}" for i in range(f)]
-    df = pd.DataFrame(X, columns=col_names)
-    if save_path is not None:
-        df.to_csv(save_path, index=False)
-    return df
 
 
 
@@ -223,6 +208,25 @@ def load_dataset(file_path:str,
         if verbose:
             print("done.")
     return DF
+
+
+
+
+def train_test_split(X:torch.Tensor, y:torch.Tensor, split:float=0.75) -> tuple[torch.Tensor, torch.Tensor, torch.Tensor, torch.Tensor]:
+    '''
+    Splits the two tensors `X` and `y` in two at the same cutting point defined by `split`
+    '''
+    assert split > 0.0 and split < 1.0
+    split_index = int(X.shape[0] * split)
+    
+    X_train = X[:split_index]
+    y_train = y[:split_index]
+
+    X_test = X[split_index:]
+    y_test = y[split_index:]
+
+    return X_train, y_train, X_test, y_test
+
 
 
 

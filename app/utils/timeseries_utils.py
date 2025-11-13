@@ -19,6 +19,65 @@ from statsmodels.api import OLS
 
 
 
+
+def generate_sinusoidal_timeseries(n:int,
+                                   f:int,
+                                   freq_range:tuple[float,float]=(0.1, 1.0),
+                                   amplitude_range:tuple[float,float]=(0.5, 2.0),
+                                   phase_range:tuple[float,float]=(0, 2*np.pi),
+                                   interaction_strength:float=0.1,
+                                   seed:int|None=None,
+                                   save_path:str|None=None,
+                                  ) -> pd.DataFrame:
+    '''
+    Generate a DataFrame of shape (n, f) where each column is a sinusoid
+    and features slightly interact with one another.
+
+    **Arguments**:
+    - `n` : Number of time-steps (samples).
+    - `f` : Number of features.
+    - `freq_range` : Min and max base frequency for each feature (in cycles per unit time).
+    - `amplitude_range` : Min and max amplitude for each feature.
+    - `phase_range` : Min and max phase (in radians) for each feature.
+    - `interaction_strength` : Strength of coupling between features (0 means independent, larger means more coupling).
+    - `seed` : Seed for reproducibility.
+    - `save_path` : where to save the timeseries as a .csv file, if no path is provided then the dataframe is not saved
+
+    **Returns**:
+    - `df` : DataFrame with columns *“feat_0”*, *“feat_1”*, …, *“feat_{f-1}*”
+    '''
+    rng = np.random.default_rng(seed=seed)
+    # time axis
+    t = np.arange(n)
+
+    # base parameters for each feature
+    freqs = rng.uniform(freq_range[0], freq_range[1], size=f)
+    amps = rng.uniform(amplitude_range[0], amplitude_range[1], size=f)
+    phases = rng.uniform(phase_range[0], phase_range[1], size=f)
+
+    # generate independent sinusoids
+    X = np.zeros((n, f), dtype=float)
+    for i in range(f):
+        X[:, i] = amps[i] * np.sin(2 * np.pi * freqs[i] * t + phases[i])
+
+    # add small cross‐feature interactions
+    if interaction_strength > 0:
+        # simple linear mixing of features: each feature gets a small addition
+        # from the average of the other features
+        other_mean = (X.sum(axis=1, keepdims=True) - X) / (f - 1)
+        X = X + interaction_strength*other_mean
+
+    # wrap in pandas DataFrame
+    col_names = [f"feat_{i}" for i in range(f)]
+    df = pd.DataFrame(X, columns=col_names)
+    if save_path is not None:
+        df.to_csv(save_path, index=False)
+    return df
+
+
+
+
+
 def save_timeseries(samples, folder_path:str, file_name="timeseries.csv") -> None:
     '''
     Save the samples as a csv file.
@@ -103,20 +162,40 @@ def forecast_expected_value(model, timeseries:pd.Series|np.ndarray, n_periods:in
 def plot_forecast(time_series:pd.Series, forecast:pd.Series, output_folder:str, verbose:bool=False, model_name:str="ARIMA") -> None:
     # Plot the forecast
     plt.figure(figsize=(10, 6))
-    plt.plot(time_series, label='Original')
+    plt.plot(time_series, label='Original', color="black", linewidth=2)
     if len(time_series) != len(forecast):
-        plt.plot(np.arange(len(time_series), len(time_series) + len(forecast)), forecast, label='Forecast')
+        plt.plot(np.arange(len(time_series), len(time_series)+len(forecast)), forecast, label='Forecast', color="red", linestyle='--')
     else:
-        plt.plot(forecast, label='Forecast')
+        plt.plot(forecast, label='Forecast', color="red", linestyle='--')
     # plt.fill_between(np.arange(len(time_series), len(time_series) + forecast_steps), conf_int[:, 0], conf_int[:, 1], color='pink', alpha=0.3)
     plt.title(f'{model_name} Model Forecast')
     plt.legend()
-    plt.savefig(f"{output_folder}forecast.png")
+    plt.grid()
+    plt.savefig(f"{output_folder}/{model_name}-forecast.png")
     plt.clf()
 
 
 
-def arima_model(p:int, i:int, q:int, train_series:pd.Series, verbose:bool=False):
+def arima_model(p:int,
+                i:int,
+                q:int,
+                train_series:pd.Series|np.ndarray,
+                verbose:bool=False,
+                color:str="blue",
+               ):
+    '''
+    Initializes and **fits** an ARIMA model with the given parameters, on the given data `train_series`
+    '''
+    if verbose:
+        print("Initializing ARIMA model with the following parameters:")
+        utils.print_colored("\tp", color=color, end=f": {p}\n")
+        utils.print_colored("\ti", color=color, end=f": {i}\n")
+        utils.print_colored("\tq", color=color, end=f": {q}\n")
+        print(f"\tTotal: {p+q}")
+        print(f"Provided Timeseries has ", end="")
+        utils.print_colored(len(train_series), color=color, end=" ")
+        print("realizations.")
+        print("Fitting started ... ")
     model = tsa.ARIMA(endog=train_series, order=(p, i, q)).fit()
     if verbose:
         print(model.summary())

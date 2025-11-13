@@ -2,41 +2,9 @@
     "n_cores" : 8, // default: 8 
     "verbose" : true,
     "dataset" : "Hs2_5-Tp10_0.csv", // "Hs4_0-Tp6_0.csv",
+    "look_ahead" : 10,
     "model" : "GRU", // LSTM or GRU
     "task" : "REGR", // Regression (REGR) or classification (CLAS)
-
-
-    // Environment
-    "input_features" : [
-                        // "time", "zeta",
-                            // "RefX", "RefY", "RefZ",
-                        // "CogX", "CogY", "CogZ",
-                            // "Roll", "Pitch", "Yaw",
-                            "RefUspace", 
-                            "RefVspace",
-                            "RefWspace"
-                        // "CogUspace", "CogVspace", "CogWspace",
-                        // "Pspace", "Qspace", "Rspace",
-                        // "CogUbody", "CogVbody", "CogWbody",
-                        // "Pbody", "Qbody", "Rbody",
-                        // "Dir", "Height",
-                        // "PeakPeriod"
-                       ],
-    "output_features" : [
-                        //  "time", "zeta",
-                        //  "RefX", "RefY", "RefZ",
-                         // "CogX", "CogY", "CogZ",
-                        //  "Roll", "Pitch", "Yaw",
-                        //  "RefUspace", 
-                         "RefVspace"
-                        //  "RefWspace"
-                         // "CogUspace", "CogVspace", "CogWspace",
-                         // "Pspace", "Qspace", "Rspace",
-                         // "CogUbody", "CogVbody", "CogWbody",
-                         // "Pbody", "Qbody", "Rbody",
-                         // "Dir", "Height",
-                         // "PeakPeriod"
-                       ],
     
 
     // Neural Network
@@ -58,6 +26,31 @@
     "adam_b2" : 0.90,
     "decay_start" : 1.0, // percentage of 'adam_lr' at training start
     "decay_end" : 0.50, // percentage of 'adam_lr' at training end
+
+
+    // Timeseries Analysis
+    "arima_p" : 5,
+    "arima_i" : 1,
+    "arima_q" : 3,
+    "enforce_stationarity" : false,
+
+
+    // Environment
+    "input_features" : [
+                        // "time", "zeta",
+                            // "RefX", "RefY", "RefZ",
+                            // "Roll", "Pitch", "Yaw",
+                            // "RefUspace", 
+                            // "RefVspace",
+                            "RefWspace"
+                        // "Dir", "Height",
+                        // "PeakPeriod"
+                       ],
+    "output_features" : [
+                            // "RefUspace", 
+                            // "RefVspace",
+                            "RefWspace"
+                       ],
 
 
     // Locations
