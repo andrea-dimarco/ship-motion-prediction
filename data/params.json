@@ -1,7 +1,7 @@
 {
     "n_cores" : 8, // default: 8 
     "verbose" : true,
-    "dataset" : "Hs4_0-Tp6_0.csv", // "Hs2_5-Tp10_0.csv",
+    "dataset" : "Hs2_5-Tp10_0.csv", // "Hs4_0-Tp6_0.csv",
     "model" : "GRU", // LSTM or GRU
     "task" : "REGR", // Regression (REGR) or classification (CLAS)
 
@@ -9,9 +9,9 @@
     // Environment
     "input_features" : [
                         // "time", "zeta",
-                            "RefX", "RefY", "RefZ",
+                            // "RefX", "RefY", "RefZ",
                         // "CogX", "CogY", "CogZ",
-                            "Roll", "Pitch", "Yaw",
+                            // "Roll", "Pitch", "Yaw",
                             "RefUspace", 
                             "RefVspace",
                             "RefWspace"
@@ -64,5 +64,6 @@
     "img_folder" : "/data/img/",
     "dataset_folder" : "/data/dataset/",
     "lstm_folder" : "/data/LSTM/",
-    "gru_folder" : "/data/GRU/"
+    "gru_folder" : "/data/GRU/",
+    "timeseries_folder" : "/data/timeseries/"
 }

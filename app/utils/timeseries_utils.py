@@ -29,37 +29,41 @@ def save_timeseries(samples, folder_path:str, file_name="timeseries.csv") -> Non
 
 
 
-def plot_ACF_PACF(timeseries:np.ndarray, output_folder:str, series_name:str, max_lag:int=10, verbose:bool=False) -> None:
-
+def plot_ACF_PACF(timeseries:np.ndarray,
+                  output_folder:str,
+                  series_name:str,
+                  max_lag:int=10,
+                  verbose:bool=False
+                 ) -> None:
+    '''
+    Plots ACF and PACF plots
+    '''
     if verbose:
         print("Generating diagnostic check plots ... ", end="")
-
-
     lags = min(max_lag, len(timeseries))
-
     # Plot the ACF of the residuals
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(7, 6))
     sm.graphics.tsa.plot_acf(timeseries, lags=lags)
     plt.title(f"'{series_name}' ACF Plot")
     plt.grid()
     plt.savefig(f"{output_folder}{series_name.replace('/', '-')}-ACF.png")
     plt.clf()
-
     # Plot the PACF of the residuals
-    plt.figure(figsize=(6, 6))
+    plt.figure(figsize=(7, 6))
     sm.graphics.tsa.plot_pacf(timeseries, lags=lags)
     plt.title(f"'{series_name}' PACF Plot")
     plt.grid()
     plt.savefig(f"{output_folder}{series_name.replace('/', '-')}-PACF.png")
     plt.clf()
-
     if verbose:
         print("done.")
 
 
 
 def diagnostic_check(model, output_folder:str, lag=10, model_name:str="", verbose:bool=False) -> None:
-
+    '''
+    Check timeseries model performance
+    '''
     if verbose:
         print("Generating residual diagnostic check plots ... ", end="")
     # Plot the residuals
@@ -306,6 +310,11 @@ def check_multivariate_cointegration(multivariate_timeseries:pd.Series|np.ndarra
     '''
     Check every pair of features and returns a list of cointegrated features
     '''
+    if verbose:
+        print("Checking cointegration among", end=" ")
+        utils.print_colored(len(features), color=color, end=" ")
+        print("timeseries:")
+        bar = utils.BAR(len(features)*(len(features)-1))
     cointegrated:list[tuple[str,str]] = list()
     for i in range(len(features)-1):
         for j in range(i+1, len(features)):
@@ -314,7 +323,94 @@ def check_multivariate_cointegration(multivariate_timeseries:pd.Series|np.ndarra
                                    verbose=False,
                                    ):
                 cointegrated.append( (features[i],features[j]) )
+                if verbose:
+                    bar.update()
     if verbose:
-        print("The following parameters are cointegrated")
-        utils.print_two_column(cointegrated, color=color)
+        bar.finish()
+        if len(cointegrated) > 0:
+            print("The following parameters are cointegrated")
+            utils.print_two_column(cointegrated, color=color)
+        else:
+            print("No timeseries can be cointegrated.")
     return cointegrated
+
+
+
+def make_diff_stationary(timeseries:pd.Series|np.ndarray,
+                         max_diff:int|None=None,
+                         verbose:bool=True
+                        ) -> tuple[pd.Series|np.ndarray, int]:
+    '''
+    Takes the derivative of the timeseries for as long as needed to make it stationary.  It might not always be possible to make a series stationary.
+
+    **Returns**:
+    - `stationary_series` if possible else `timeseries`
+    - `derivativ_degree` if possible else `-1`
+    '''
+    from copy import deepcopy
+    current_diff:int = 0
+    univariate_series = deepcopy(timeseries)
+    stationarity:int = 2
+    while stationarity in {2, 3}:
+        current_diff += 1
+        univariate_series = diff_timeseries(univariate_series)
+        if verbose:
+            print(f"Checking derivative of degree {current_diff}:", end=" ")
+        stationarity:int = check_stationarity(univariate_series=univariate_series,
+                                              detailed_info=True,
+                                              verbose=verbose,
+                                              print_full_analysis=False,
+                                             )
+        if max_diff is not None and current_diff >= max_diff:
+            break
+    if stationarity == 0:
+        # the series is now stationary
+        if verbose:
+            print(f"The timeseries has been made stationary after {current_diff} differentiations")
+        return (univariate_series, current_diff)
+    else:
+        # the series is not stationary
+        if verbose:
+            print("Timeseries could not be made stationary with differentiations.")
+        return (timeseries, -1)
+        
+
+
+def make_multivariate_diff_stationary(multivariate_timeseries:pd.Series|np.ndarray,
+                                      features:list[str],
+                                      verbose:bool=False,
+                                      max_diff:int|None=None,
+                                     ) -> list[tuple[str,str]]:
+    from copy import deepcopy
+    current_diff:int = 0
+    series = deepcopy(multivariate_timeseries)
+    stationarity:int = 2
+    while stationarity in {2, 3}: # deterministic trend or diff stationarity
+        current_diff += 1
+        for i in range(len(features)):
+            series[1:,i] = diff_timeseries(series[:,i])
+        series = series[1:]
+        if verbose:
+            print(f"Checking derivative of degree {current_diff}:", end=" ")
+        non_stat:list[tuple] = non_stationary_features_list(multivariate_timeseries=series,
+                                                            features=features,
+                                                            verbose=verbose
+                                                           )
+        
+        if len(non_stat) == 0:
+            stationarity = 0
+        else:
+            stationarity = max([s[1] for s in non_stat])
+
+        if max_diff is not None and current_diff >= max_diff:
+            break
+    if stationarity == 0:
+        # the series is now stationary
+        if verbose:
+            print(f"The multivariate timeseries has been made stationary after {current_diff} differentiations")
+        return (series, current_diff)
+    else:
+        # the series is not stationary
+        if verbose:
+            print("Multivariate timeseries could not be made stationary with differentiations.")
+        return (multivariate_timeseries, -1)

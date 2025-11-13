@@ -9,6 +9,7 @@ from typing import Literal, Any, Callable
 
 import utils.nn_utils as nnu
 import utils.utils as utils
+import utils.plot_utils as plu
 
 
 
@@ -204,7 +205,7 @@ def multi_step_forecast(model:(...), init_seq:torch.Tensor, n_steps:int=1) -> to
         # 2) prepare the next input sequence by appending y_pred and dropping oldest.
         # If your input size in_dim == out_dim, you can directly use it; if not, you may need a mapping
         next_input = y_pred.unsqueeze(1)  # (batch,1,out_dim)
-        # drop first time step, shift sequence left, append next_input
+        # drop first time step, shift sequence UP, append next_input
         current_seq = torch.cat( (current_seq[:,1:,:], next_input), dim=1 )
     return torch.cat(predictions, dim=1)  # (batch, n_steps, out_dim)
 
@@ -347,6 +348,43 @@ def deep_learning_model(params:dict) -> None:
 
 
 
+def stationarity_analysis(DF, plot_folder:str|None=None, max_diff:int|None=None, verbose:bool=True, color:str="blue", plot_limit:int=-1) -> np.ndarray:
+    import utils.timeseries_utils as tsu
+    stationarity_info = tsu.non_stationary_features_list(multivariate_timeseries=DF.to_numpy(),
+                                                         features=list(DF.columns),
+                                                         detailed_info=True,
+                                                         verbose=verbose
+                                                        )
+    stationary, diff = tsu.make_multivariate_diff_stationary(multivariate_timeseries=DF.to_numpy(),
+                                                             features=list(DF.columns),
+                                                             verbose=verbose,
+                                                             max_diff=max_diff,
+                                                            )
+    cointegration = tsu.check_multivariate_cointegration(multivariate_timeseries=stationary,#DF.to_numpy(),
+                                                         features=list(DF.columns),
+                                                         verbose=verbose,
+                                                         color=color,
+                                                        )
+    if plot_folder is not None:
+        fig = plt.figure(figsize=(8, 7))
+        UP = fig.add_subplot(2, 1, 1)
+        DOWN = fig.add_subplot(2, 1, 2)
+        # Plot timeseries
+        UP.plot(DF[:plot_limit].to_numpy(), label=list(DF.columns))
+        DOWN.plot(stationary[:plot_limit], label=list(DF.columns))
+        # Stylize the plot
+        UP.grid()
+        DOWN.grid()
+        UP.set_title("BEFORE Stationary Transformations")
+        DOWN.set_title("AFTER Stationary Transformation")
+        UP.legend()
+        DOWN.legend()
+        DOWN.set_xlabel("Timestep")
+        plt.savefig(f"{plot_folder}stationarity_check.png")
+        plt.clf()
+    return stationary
+
+
 def timeseries_analysis(params:dict) -> None:
     verbose:bool = params['verbose']
     import utils.timeseries_utils as tsu
@@ -365,18 +403,13 @@ def timeseries_analysis(params:dict) -> None:
                          normalize=True,
                         )
     # STATIONARITY
-    # assert len(params['input_features']) == 1
-    stationarity_info = tsu.non_stationary_features_list(multivariate_timeseries=DF.to_numpy(),
-                                                         features=list(DF.columns),
-                                                         detailed_info=True,
-                                                         verbose=True
-                                                        )
-    
-    cointegration = tsu.check_multivariate_cointegration(multivariate_timeseries=DF.to_numpy(),
-                                                         features=list(DF.columns),
-                                                         verbose=verbose,
-                                                         color=color,
-                                                        )
+    TS = stationarity_analysis(DF=DF,
+                               max_diff=None,
+                               verbose=verbose,
+                               color=color,
+                               plot_folder=params['timeseries_fodler'],
+                               plot_limit=plot_limit,
+                              )
 
 
 
