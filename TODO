@@ -15,7 +15,6 @@
 
 
 - **ARIMA**
-    - Trattare le dimensioni in modo indipendente
     - Trattare più dimensioni insieme
         - *VAR* sarebbe più accurato? èerché gestisce più dimensioni
 
@@ -48,4 +47,8 @@
 - Sequenze dataset dalle simulazioni
 - Normalizzazione dati simulazione
 - Training loop per `REGR` di `GRU` e `LSTM` con dati delle simulazioni
+- Analisi stazionarietà delle timeseries
+- Fit modello ARIMA
+- Validazione & Plot predizione ARIMA
+- Confronto predizione GRU e ARIMA 
 - ...
