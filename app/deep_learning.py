@@ -64,8 +64,6 @@ def get_predictor(type:Literal['LSTM','GRU'],
     
 
 
-
-
 def plot_predictions(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, plot_img:str, title:str="Predictions vs Actual"):
     '''
     Plots the model's predictions against the actual `y_test` values.
@@ -180,9 +178,16 @@ def multi_step_forecast_validation(model:(...),
     y_true_np = y[n_steps-1:,:].cpu().detach().numpy().reshape(-1) # take the actual value n_steps ahead (-1 because y is already 1 step ahead)
     y_pred_np = y_pred[:len(y_true_np),-1,:].cpu().detach().numpy().reshape(-1) # (n_seq, out_dim) # NOTE: only take the n_step ahead prediction
     
+    # COMPUTE ERROR
+    error = float(nn.L1Loss()(torch.from_numpy(y_pred_np), torch.from_numpy(y_true_np)))
+    if verbose:
+        print("Forecasting", end=" ")
+        utils.print_colored(n_steps, color=color, end=" ")
+        print("steps ahead gave an error of", end=" ")
+        utils.print_colored(error, color=color)
+
     # create x‐axis for steps: you can choose e.g. from 1→n_steps
     steps = np.arange(1, len(y_true_np)+1)
-
     if img_path is not None:
         plt.figure(figsize=(10,6))
         plt.plot(steps, y_true_np, label='Actual', marker='o')
@@ -196,19 +201,11 @@ def multi_step_forecast_validation(model:(...),
                         )
         plt.xlabel('Future Step')
         plt.ylabel(f'Feature {feat} value')
-        plt.title('Actual vs Predicted - Multi-step forecast')
+        plt.title(f'Actual vs Predicted - {n_steps}-step forecast (err:{round(error,5)})')
         plt.legend()
         plt.grid()
         plt.tight_layout()
         plt.savefig(img_path)
-
-    # COMPUTE ERROR
-    error = float(nn.L1Loss()(torch.from_numpy(y_pred_np), torch.from_numpy(y_true_np)))
-    if verbose:
-        print("Forecasting", end=" ")
-        utils.print_colored(n_steps, color=color, end=" ")
-        print("steps ahead gave an error of", end=" ")
-        utils.print_colored(error, color=color)
     return error
 
 
@@ -221,7 +218,7 @@ def deep_learning_model(params:dict, plot_limit:int=-1, color:str="blue") -> Non
         utils.print_colored(f"SHIP-MOTION PREDICTION ({case_study})", highlight=color)
         print("Input Features:")
         utils.print_two_column(params['input_features'], color=color)
-        print("Output Features")
+        print("Output Features:")
         utils.print_two_column(params['output_features'], color=color)
     
     X, Y = get_data(task=params['task'],

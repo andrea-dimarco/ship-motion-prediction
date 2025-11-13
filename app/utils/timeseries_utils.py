@@ -151,14 +151,6 @@ def diagnostic_check(model, output_folder:str, lag=10, model_name:str="", verbos
 
 
 
-def forecast_expected_value(model, timeseries:pd.Series|np.ndarray, n_periods:int) -> pd.Series:
-    return model.predict(n_periods=n_periods, 
-                         exogenous=timeseries,
-                         return_conf_int=False
-                        )
-
-
-
 def plot_forecast(time_series:pd.Series, forecast:pd.Series, output_folder:str, verbose:bool=False, model_name:str="ARIMA") -> None:
     # Plot the forecast
     plt.figure(figsize=(10, 6))

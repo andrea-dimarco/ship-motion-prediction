@@ -2,7 +2,7 @@
     "n_cores" : 8, // default: 8 
     "verbose" : true,
     "dataset" : "Hs2_5-Tp10_0.csv", // "Hs4_0-Tp6_0.csv",
-    "look_ahead" : 10,
+    "look_ahead" : 50,
     "model" : "GRU", // LSTM or GRU
     "task" : "REGR", // Regression (REGR) or classification (CLAS)
     
@@ -30,8 +30,9 @@
 
     // Timeseries Analysis
     "arima_p" : 5,
-    "arima_i" : 1,
+    "arima_i" : 0,
     "arima_q" : 3,
+    "arima_alpha" : 0.05, // confidence interval
     "enforce_stationarity" : false,
 
 

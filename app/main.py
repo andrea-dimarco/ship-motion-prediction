@@ -26,6 +26,6 @@ if __name__ == '__main__':
 
     params:dict = utils.load_json("/data/params.json")
     
-    # deep_learning_model(params, plot_limit=plot_limit, color=color)
+    deep_learning_model(params, plot_limit=plot_limit, color=color)
     
     timeseries_analysis(params, plot_limit=plot_limit, color=color)
