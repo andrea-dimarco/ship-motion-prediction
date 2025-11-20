@@ -19,7 +19,7 @@
     "lstm_hidden_dim" : 16,
         // GRUs
     "gru_num_layers" : 1,
-    "gru_hidden_dim" : 8,
+    "gru_hidden_dim" : 16,
         // Adam Optimizer
     "adam_lr" : 0.005, // learning rate
     "adam_b1" : 0.75,
@@ -29,11 +29,19 @@
 
 
     // Timeseries Analysis
-    "arima_p" : 50,
-    "arima_i" : 0,
-    "arima_q" : 50,
-    "arima_alpha" : 0.05, // confidence interval
     "enforce_stationarity" : false,
+        // ARIMA
+    "arima_p" : 70,
+    "arima_i" : 0,
+    "arima_q" : 70,
+    "arima_alpha" : 0.05, // confidence interval
+        // Volatility
+    "arch_p" : 1,
+    "garch_q" : 5, 
+    "arch_lag" : 20,
+    "arch_resid_lags" : 20,
+    "volatility_mean" : "ARX", // can be {'constant', 'zero', 'AR', 'ARX'}
+    "volatility_dist" : "normal", // can be {'normal', 't', 'skewt'}
 
 
     // Environment

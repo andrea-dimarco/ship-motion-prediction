@@ -58,4 +58,7 @@
 - Modelli AR e MA
 - fix plot
 - Test hyperparameters
+- Modelli ARCH e GARCH
+- Controllo formale della performance dei modelli
+- Pulizia directory & test
 - ...

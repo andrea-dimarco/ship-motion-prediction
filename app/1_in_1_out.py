@@ -11,8 +11,8 @@ import utils.nn_utils as nnu
 import utils.utils as utils
 import utils.plot_utils as plu
 
-from deep_learning import *
-from timeseries import *
+from univariate.univariate_deep_learning import *
+from univariate.univariate_timeseries import *
 
 
 if __name__ == '__main__':
@@ -26,6 +26,6 @@ if __name__ == '__main__':
 
     params:dict = utils.load_json("/data/params.json")
     
-    # timeseries_analysis(params, plot_limit=plot_limit, color=color)
+    univariate_timeseries_analysis(params, plot_limit=plot_limit, color=color)
     
     deep_learning_model(params, plot_limit=plot_limit, color=color)

@@ -65,7 +65,7 @@
     // Locations
     "img_folder" : "/data/img/",
     "dataset_folder" : "/data/dataset/",
-    "lstm_folder" : "/data/LSTM/",
-    "gru_folder" : "/data/GRU/",
+    "lstm_folder" : "/data/NN/LSTM/",
+    "gru_folder" : "/data/NN/GRU/",
     "timeseries_folder" : "/data/timeseries/"
 }

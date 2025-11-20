@@ -278,28 +278,22 @@ def volatility_model(series, model_type='GARCH',
                      lags=0,
                      resid_lags=0,
                      dist:Literal['normal','t','skewt']='normal'
-                    ):
+                    ) -> arch.univariate.base.ARCHModelResult:
     """
-    Fit an ARCH or GARCH model to a time series, supporting dynamic mean models (AR).
+    Fit an **ARCH** or **GARCH** model to a time series, supporting dynamic mean models (AR).
 
-    Parameters
-    ----------
-    series : The time series data (e.g. returns).
-    model_type : 'ARCH' or 'GARCH'.
-    p : int
-        Order of ARCH term.
-    q : int
-        Order of GARCH term (ignored if ARCH).
-    mean : str
-        Mean model: 'constant', 'zero', or 'AR'.
-    lags : Number of AR lags if mean='AR'. Ignored otherwise.
-    dist : str
-        Distribution of errors ('normal', 't', 'skewt').
+    **Arguments**:
+    - `series` : The time series data (e.g. returns).
+    - `model_type` : 'ARCH' or 'GARCH'.
+    - `p` : Order of ARCH term.
+    - `q` : Order of GARCH term (ignored if ARCH).
+    - `mean` : Mean model: 'constant', 'zero', or 'AR'.
+    - `lags` : Number of AR lags (p) if `mean='AR'`. *Ignored otherwise*.
+    - `resid_lags` : Number of ARMA residual lags (q) if `mean='ARX'`. *Ignored otherwise*.
+    - `dist` : Distribution of errors ('normal', 't', 'skewt').
 
-    Returns
-    -------
-    fitted_model : arch.univariate.base.ARCHModelResult
-        The fitted model object.
+    **Returns**:
+    - `fitted_model` : The fitted model object.
     """
     series = np.asarray(series)
 
@@ -310,7 +304,6 @@ def volatility_model(series, model_type='GARCH',
         extra_args = {'lags':lags, 'resid_lags':resid_lags}
     else:
         extra_args = {}
-
     if model_type.upper() == 'ARCH':
         am = arch.arch_model(series,
                         mean=mean,
@@ -329,8 +322,7 @@ def volatility_model(series, model_type='GARCH',
                         **extra_args
                        )
     else:
-        raise ValueError("model_type must be 'ARCH' or 'GARCH'")
-
+        raise ValueError(f"model_type must be 'ARCH' or 'GARCH', not {model_type}")
     fitted_model = am.fit(disp='off')
     return fitted_model
 

@@ -12,7 +12,7 @@ import data_handling as dh
 
 
 
-def timeseries_analysis(params:dict, plot_limit:int=-1, color:str="blue") -> None:
+def univariate_timeseries_analysis(params:dict, plot_limit:int=-1, color:str="blue") -> None:
     '''
     Performs the timeseries analysis and model fit on the data available
     '''
@@ -58,6 +58,11 @@ def timeseries_analysis(params:dict, plot_limit:int=-1, color:str="blue") -> Non
     train_test_GARCH(params, TS, verbose, color, plot_limit=plot_limit)
 
     
+# # # # # # # # # #
+# MODEL FUNCTIONS #
+# # # # # # # # # #
+
+
 
 def train_test_ARIMA(params, TS, verbose:bool=True, color:str="blue", plot_limit:int=-1) -> None:
     if verbose:
@@ -109,7 +114,6 @@ def train_test_ARIMA(params, TS, verbose:bool=True, color:str="blue", plot_limit
                          verbose=verbose
                         )
     return model
-
 
 
 def train_test_AR(params, TS, verbose:bool=True, color:str="blue", plot_limit:int=-1) -> None:
