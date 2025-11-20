@@ -7,16 +7,20 @@
 
 
 - **LSTM**:
-    - training & validation classificazione
+    - multi_in single_out
+    - classificazione
 
 
 - **GRU**
-    - training & validation classificazione
+    - multi_in single_out
+    - classificazione
 
 
 - **ARIMA**
     - Trattare più dimensioni insieme
         - *VAR* sarebbe più accurato? èerché gestisce più dimensioni
+    - usare MA anziché ARIMA
+        - Test per le dimensioni
 
 
 - **K-FOLD**
@@ -51,4 +55,7 @@
 - Fit modello ARIMA
 - Validazione & Plot predizione ARIMA
 - Confronto predizione GRU e ARIMA 
+- Modelli AR e MA
+- fix plot
+- Test hyperparameters
 - ...
