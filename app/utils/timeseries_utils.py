@@ -3,6 +3,7 @@ import utils.utils as utils
 
 # internal libraries
 import datetime
+from typing import Literal, Any
 
 # external libraries
 import pandas as pd
@@ -15,6 +16,7 @@ from statsmodels.tsa.api import VAR
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import kpss
 from statsmodels.api import OLS
+import arch
 
 
 
@@ -76,8 +78,6 @@ def generate_sinusoidal_timeseries(n:int,
 
 
 
-
-
 def save_timeseries(samples, folder_path:str, file_name="timeseries.csv") -> None:
     '''
     Save the samples as a csv file.
@@ -130,20 +130,23 @@ def diagnostic_check(model, output_folder:str, lag=10, model_name:str="", verbos
     residuals = model.resid
     plt.figure(figsize=(10, 6))
     plt.plot(residuals)
+    plt.grid()
     plt.title(f'Residuals of the {model_name} Model')
-    plt.savefig(f"{output_folder}residuals.png")
+    plt.savefig(f"{output_folder}{model_name}_residuals.png")
     plt.clf()
 
     # Plot the ACF of the residuals
     plt.figure(figsize=(10, 6))
     sm.graphics.tsa.plot_acf(residuals, lags=lag)
-    plt.savefig(f"{output_folder}residuals_ACF.png")
+    plt.grid()
+    plt.savefig(f"{output_folder}{model_name}_residuals_ACF.png")
     plt.clf()
 
     # Plot the PACF of the residuals
     plt.figure(figsize=(10, 6))
     sm.graphics.tsa.plot_pacf(residuals, lags=lag)
-    plt.savefig(f"{output_folder}residuals_PACF.png")
+    plt.grid()
+    plt.savefig(f"{output_folder}{model_name}_residuals_PACF.png")
     plt.clf()
 
     if verbose:
@@ -152,20 +155,62 @@ def diagnostic_check(model, output_folder:str, lag=10, model_name:str="", verbos
 
 
 
-def plot_forecast(time_series:pd.Series, forecast:pd.Series, output_folder:str, verbose:bool=False, model_name:str="ARIMA") -> None:
-    # Plot the forecast
-    plt.figure(figsize=(10, 6))
-    plt.plot(time_series, label='Original', color="black", linewidth=2)
-    if len(time_series) != len(forecast):
-        plt.plot(np.arange(len(time_series), len(time_series)+len(forecast)), forecast, label='Forecast', color="red", linestyle='--')
-    else:
-        plt.plot(forecast, label='Forecast', color="red", linestyle='--')
-    # plt.fill_between(np.arange(len(time_series), len(time_series) + forecast_steps), conf_int[:, 0], conf_int[:, 1], color='pink', alpha=0.3)
-    plt.title(f'{model_name} Model Forecast')
-    plt.legend()
-    plt.grid()
-    plt.savefig(f"{output_folder}/{model_name}-forecast.png")
-    plt.clf()
+def validate_forecast(historical:np.ndarray,
+                      forecast_mean:np.ndarray,
+                      conf_int:np.ndarray,
+                      model_name:str="ARIMA",
+                      file_path:str|None=None,
+                      ground_truth:np.ndarray|None=None,
+                      alpha:float=0.05,
+                      verbose:bool=True,
+                      color:str="blue",
+                     ) -> float:
+    """
+    Plot original numpy-series + forecast + confidence interval.
+    """
+    # COMPUTE ERROR
+    import torch
+    from torch import nn
+    error = float(nn.L1Loss()(torch.from_numpy(forecast_mean), torch.from_numpy(ground_truth)))
+    if verbose:
+        print("Forecasting", end=" ")
+        utils.print_colored(len(forecast_mean), color=color, end=" ")
+        print("steps ahead gave an error of", end=" ")
+        utils.print_colored(error, color=color)
+    if file_path is not None:
+        plt.figure(figsize=(10,6))
+        # plot original
+        plt.plot(np.arange(len(historical)), historical, label='Historical')
+        # plot forecast
+        start = len(historical)
+        steps = np.arange(start,start+len(forecast_mean))
+        if ground_truth is not None:
+            assert len(ground_truth) == len(forecast_mean)
+            plt.plot(steps, ground_truth, label='Ground Truth', color='black', linewidth=2)
+            plt.fill_between(steps, ground_truth, forecast_mean,
+                            where=None,       # or a boolean array if you only want some segments
+                            interpolate=True, # helps when lines cross
+                            color='red',
+                            alpha=0.3,
+                            label="Error",
+                            )
+        plt.plot(steps, forecast_mean, label='Forecast', color='red', linestyle="--")
+        # fill between CI
+        lower = conf_int[:,0]
+        upper = conf_int[:,1]
+        plt.fill_between(np.arange(start, start + len(forecast_mean)), lower, upper,
+                        color='cyan',
+                        alpha=0.3,
+                        label=f'{100*(1-alpha):.1f}% Confidence Interval'
+                       )
+        plt.legend()
+        plt.grid()
+        plt.xlabel('Timestep')
+        plt.ylabel('Value')
+        plt.title(f"{model_name} prediction of {len(forecast_mean)} steps ahead (err:{round(error,5)})")
+        plt.savefig(file_path)
+        plt.clf()
+    return error
 
 
 
@@ -193,6 +238,120 @@ def arima_model(p:int,
     if verbose:
         print(model.summary())
     return model 
+
+
+
+def arima_forecast(model, steps=10, alpha=0.05):
+    """
+    Forecast future values from a fitted ARIMA model that was fit on a numpy array.
+    Args:
+        fitted_model: result from fit_arima_numpy(...)
+        y: original 1-D numpy array (used for shape/length reference).
+        steps: number of future periods to forecast.
+        alpha: significance level for confidence intervals.
+    Returns:
+        forecast_mean: 1-D numpy array of length = steps.
+        ci: 2-D numpy array of shape (steps, 2) with lower and upper bounds. (confident interval)
+    """
+    # Depending on statsmodels version, you may use .get_forecast or .forecast
+    try:
+        fc_obj = model.get_forecast(steps=steps)
+        forecast_mean = fc_obj.predicted_mean
+        ci = fc_obj.conf_int(alpha=alpha)
+        # If original fit used numpy array, ci may be numpy array too.
+    except AttributeError:
+        # fallback for older statsmodels
+        forecast_mean, stderr, ci = model.forecast(steps=steps, alpha=alpha)
+        # Here ci is a numpy array of shape (steps,2)
+    # Ensure numpy array output
+    forecast_mean = np.asarray(forecast_mean).flatten()
+    ci = np.asarray(ci)
+    if ci.ndim == 1:
+        ci = ci.reshape(-1, 2)
+    return forecast_mean, ci
+
+
+
+def volatility_model(series, model_type='GARCH',
+                     p=1, q=1,
+                     mean:Literal['constant','zero','AR', 'MA', 'ARX']='constant',
+                     lags=0,
+                     resid_lags=0,
+                     dist:Literal['normal','t','skewt']='normal'
+                    ):
+    """
+    Fit an ARCH or GARCH model to a time series, supporting dynamic mean models (AR).
+
+    Parameters
+    ----------
+    series : The time series data (e.g. returns).
+    model_type : 'ARCH' or 'GARCH'.
+    p : int
+        Order of ARCH term.
+    q : int
+        Order of GARCH term (ignored if ARCH).
+    mean : str
+        Mean model: 'constant', 'zero', or 'AR'.
+    lags : Number of AR lags if mean='AR'. Ignored otherwise.
+    dist : str
+        Distribution of errors ('normal', 't', 'skewt').
+
+    Returns
+    -------
+    fitted_model : arch.univariate.base.ARCHModelResult
+        The fitted model object.
+    """
+    series = np.asarray(series)
+
+    # Configure mean model
+    if mean.upper() == 'AR':
+        extra_args = {'lags': lags}
+    elif mean.upper() == 'ARX':
+        extra_args = {'lags':lags, 'resid_lags':resid_lags}
+    else:
+        extra_args = {}
+
+    if model_type.upper() == 'ARCH':
+        am = arch.arch_model(series,
+                        mean=mean,
+                        vol='ARCH',
+                        p=p,
+                        dist=dist,
+                        **extra_args
+                       )
+    elif model_type.upper() == 'GARCH':
+        am = arch.arch_model(series,
+                        mean=mean,
+                        vol='GARCH',
+                        p=p,
+                        q=q,
+                        dist=dist,
+                        **extra_args
+                       )
+    else:
+        raise ValueError("model_type must be 'ARCH' or 'GARCH'")
+
+    fitted_model = am.fit(disp='off')
+    return fitted_model
+
+
+
+def forecast_volatility(model:arch.univariate.base.ARCHModelResult, steps=5):
+    """
+    Forecast future conditional variance using a fitted ARCH/GARCH model.
+
+    **Arguments**:
+    - `fitted_model` : A fitted model returned by volatility_model.
+    - `steps` : Number of periods to forecast.
+
+    **Returns**:
+    - `mean_forecast` : forecasted mean value
+    - `variance_forecast` : forecasted variance value
+    """
+    forecast = model.forecast(horizon=steps)
+    mean_forecast = forecast.mean.iloc[-1].values
+    variance_forecast = forecast.variance.iloc[-1].values
+    return mean_forecast, variance_forecast
 
 
 
@@ -486,3 +645,44 @@ def make_multivariate_diff_stationary(multivariate_timeseries:pd.Series|np.ndarr
         if verbose:
             print("Multivariate timeseries could not be made stationary with differentiations.")
         return (multivariate_timeseries, -1)
+    
+
+
+def stationarity_analysis(DF, plot_folder:str|None=None, max_diff:int|None=None, verbose:bool=True, color:str="blue", plot_limit:int=-1) -> np.ndarray:
+    '''
+    Checks stationary features and cointegration opportunities, then differentiate the data until all features are stationary and returns it
+    '''
+    stationarity_info = non_stationary_features_list(multivariate_timeseries=DF.to_numpy(),
+                                                     features=list(DF.columns),
+                                                     detailed_info=True,
+                                                     verbose=verbose
+                                                    )
+    stationary, diff = make_multivariate_diff_stationary(multivariate_timeseries=DF.to_numpy(),
+                                                         features=list(DF.columns),
+                                                         verbose=verbose,
+                                                         max_diff=max_diff,
+                                                        )
+    cointegration = check_multivariate_cointegration(multivariate_timeseries=stationary,#DF.to_numpy(),
+                                                     features=list(DF.columns),
+                                                     verbose=verbose,
+                                                     color=color,
+                                                    )
+    if plot_folder is not None:
+        fig = plt.figure(figsize=(8, 7))
+        UP = fig.add_subplot(2, 1, 1)
+        DOWN = fig.add_subplot(2, 1, 2)
+        # Plot timeseries
+        UP.plot(DF[:plot_limit].to_numpy(), label=list(DF.columns))
+        DOWN.plot(stationary[:plot_limit], label=list(DF.columns))
+        # Stylize the plot
+        UP.grid()
+        DOWN.grid()
+        UP.set_title("BEFORE Stationary Transformations")
+        DOWN.set_title("AFTER Stationary Transformation")
+        UP.legend()
+        DOWN.legend()
+        DOWN.set_xlabel("Timestep")
+        plt.savefig(f"{plot_folder}stationarity_check.png")
+        plt.clf()
+    return stationary
+

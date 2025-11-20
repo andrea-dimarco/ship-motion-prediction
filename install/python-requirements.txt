@@ -14,7 +14,8 @@ pillow==11.3.0 # .png --> .gif
 
 
 # TimeSeries Analysis
-statsmodels==0.14.4
+statsmodels==0.14.4 # basic, foundamental stuff
+arch==8.0.0 # ARCH and GARCH models, and more...
 
 
 # Neural Network
