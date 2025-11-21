@@ -36,30 +36,30 @@
     "arima_q" : 70,
     "arima_alpha" : 0.05, // confidence interval
         // Volatility
-    "arch_p" : 1,
+    "arch_p" : 5,
     "garch_q" : 5, 
-    "arch_lag" : 20,
-    "arch_resid_lags" : 20,
-    "volatility_mean" : "ARX", // can be {'constant', 'zero', 'AR', 'ARX'}
+    "arch_lag" : 30,
+    "arch_resid_lags" : 30,
+    "volatility_mean" : "AR", // can be {'constant', 'zero', 'AR', 'ARX'}
     "volatility_dist" : "normal", // can be {'normal', 't', 'skewt'}
 
 
     // Environment
     "input_features" : [
-                        // "time", "zeta",
+                         // "time", "zeta",
                             // "RefX", "RefY", "RefZ",
                             // "Roll", "Pitch", "Yaw",
                             // "RefUspace",
 			                // "RefVspace",
                             "RefWspace"
-                        // "Dir", "Height",
-                        // "PeakPeriod"
-                       ],
+                         // "Dir", "Height",
+                         // "PeakPeriod"
+                        ],
     "output_features" : [
-                            // "RefUspace", 
-                            // "RefVspace"
-                            "RefWspace"
-                       ],
+                         // "RefUspace", 
+                         // "RefVspace"
+                         "RefWspace"
+                        ],
 
 
     // Locations

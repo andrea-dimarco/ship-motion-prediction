@@ -44,16 +44,16 @@ def univariate_timeseries_analysis(params:dict, plot_limit:int=-1, color:str="bl
     
     # ARIMA Model
     assert len(features) == 1
-    train_test_ARIMA(params, TS, verbose, color, plot_limit=plot_limit)
+    # train_test_ARIMA(params, TS, verbose, color, plot_limit=plot_limit)
     
-    tsu.plot_ACF_PACF(timeseries=TS,
-                      output_folder=params['timeseries_folder'],
-                      series_name=features[0],
-                      max_lag=params['seq_len'],
-                      verbose=verbose
-                     )
-    train_test_AR(params, TS, verbose, color, plot_limit=plot_limit)
-    train_test_MA(params, TS, verbose, color, plot_limit=plot_limit)
+    # tsu.plot_ACF_PACF(timeseries=TS,
+    #                   output_folder=params['timeseries_folder'],
+    #                   series_name=features[0],
+    #                   max_lag=params['seq_len'],
+    #                   verbose=verbose
+    #                  )
+    # train_test_AR(params, TS, verbose, color, plot_limit=plot_limit)
+    # train_test_MA(params, TS, verbose, color, plot_limit=plot_limit)
     train_test_ARCH(params, TS, verbose, color, plot_limit=plot_limit)
     train_test_GARCH(params, TS, verbose, color, plot_limit=plot_limit)
 
