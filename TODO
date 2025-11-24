@@ -7,20 +7,22 @@
 
 
 - **LSTM**:
-    - multi_in single_out
+    - n-in 1-out
     - classificazione
 
 
 - **GRU**
-    - multi_in single_out
+    - n-in 1-out
     - classificazione
 
 
-- **ARIMA**
-    - Trattare più dimensioni insieme
-        - *VAR* sarebbe più accurato? èerché gestisce più dimensioni
-    - usare MA anziché ARIMA
-        - Test per le dimensioni
+- **TIMESERIES**
+    - plot resiuals per modelli `n_in_n_out`
+    - altri modelli multi-variati
+        - VMA
+        - VARMA
+        - VECM (cointegration-based) [good candidate]
+        - MGARCH (overkill?)
 
 
 - **K-FOLD**
@@ -61,4 +63,13 @@
 - Modelli ARCH e GARCH
 - Controllo formale della performance dei modelli
 - Pulizia directory & test
+- Plot forecasting multi-variato
+- fit modello VAR
+- script validazione modello VAR
+- test modello VAR
+- validazione VAR
+- wrapper modelli NN per `n_in_n_out`
+- plot multi-dimensionale per NN `n_in_n_out`
+- *multi-step lookahead* per NN `n_in_n_out`
+- training & testing modelli NN `n_in_n_out`
 - ...

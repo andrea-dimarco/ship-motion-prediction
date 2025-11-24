@@ -1,17 +1,20 @@
 {
     "n_cores" : 10, // default: 8 
     "verbose" : true,
+    "model" : "GRU", // LSTM or GRU
+    "task" : "REGR", // Regression (REGR) or classification (CLAS)
+
+    // DATASET
     "dataset" : "Hs4_0-Tp6_0.csv", // "Hs2_5-Tp10_0.csv",
     "seq_len" : 100,
-    "look_ahead" : 70,
-    "model" : "LSTM", // LSTM or GRU
-    "task" : "REGR", // Regression (REGR) or classification (CLAS)
+    "look_ahead" : 35,
+    "reduce_frequency" : true, 
     
 
     // Neural Network
-    "n_epochs" : 1001, 
+    "n_epochs" : 11, 
     "batch_size" : 32,
-    "validation_frequency" : 1000,
+    "validation_frequency" : 10,
     "train_test_split" : 0.90, // ratio of sequences in the TRAIN dataset
     "n_classes" : 8, // only used if 'task' is "CLAS"
         // LSTMs
@@ -43,7 +46,8 @@
     "volatility_mean" : "AR", // can be {'constant', 'zero', 'AR', 'ARX'}
     "volatility_dist" : "normal", // can be {'normal', 't', 'skewt'}
         // VAR
-    "var_p" : 70,
+    "varmax_p" : 70,
+    "varmax_q" : 10,
 
 
     // Environment

@@ -64,7 +64,7 @@ def get_predictor(type:Literal['LSTM','GRU'],
     
 
 
-def plot_predictions(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, plot_img:str, title:str="Predictions vs Actual"):
+def plot_predictions(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, plot_img:str, features:list[str|None]=None):
     '''
     Plots the model's predictions against the actual `y_test` values.
 
@@ -80,30 +80,16 @@ def plot_predictions(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, plot
     model.eval()
     with torch.no_grad():
         y_pred = model(X_test)
-        # Flatten arrays if necessary (useful for single-output models)
-        y_pred = y_pred.flatten()
-        y_true = y_test.flatten()
 
-    # Create the plot
-    plt.figure(figsize=(10, 6))
-    plt.plot(y_true, label='Actual', color='black', linewidth=2)
-    plt.plot(y_pred, label='Predicted', color='red', linestyle='--')
-    steps = np.arange(0, len(y_true))
-    plt.fill_between(steps, y_true, y_pred,
-                     where=None,       # or a boolean array if you only want some segments
-                     interpolate=True, # helps when lines cross
-                     color='red',
-                     alpha=0.3,
-                     label="Error",
-                    )
-    plt.title(title)
-    plt.xlabel('Time Step')
-    plt.ylabel('Value')
-    plt.legend()
-    plt.grid(True, alpha=0.3)
-    plt.tight_layout()
-    plt.savefig(plot_img)
-
+    from utils.plot_utils import confront_multivariate_plots
+    confront_multivariate_plots(main_series=y_test,
+                                main_label='Actual',
+                                other_series=y_pred,
+                                other_label='Predicted',
+                                labels=features,
+                                title="Actual vs. Predicted",
+                                plot_img=plot_img,
+                               )
 
 
 def get_loss(task:str) -> (...):
@@ -136,11 +122,9 @@ def multi_step_forecast(model:(...), init_seq:torch.Tensor, n_steps:int=1) -> to
     hidden = None
     for step in range(n_steps):
         # 1) predict next step
-        try:
-            # LSTM
+        try: # LSTM
             y_pred, hidden = model(current_seq, hidden)
-        except TypeError:
-            # GRU
+        except TypeError: # GRU
             y_pred = model(current_seq)
         # y_pred shape: (batch, out_dim)
         predictions.append(y_pred.unsqueeze(1))  # (batch,1,out_dim)
@@ -157,6 +141,7 @@ def multi_step_forecast_validation(model:(...),
                                    X:torch.Tensor,
                                    y:torch.Tensor,
                                    n_steps:int=5,
+                                   labels:list[str]|None=None,
                                    img_path:str|None=None,
                                    verbose:bool=True,
                                    color:str="blue",
@@ -170,40 +155,58 @@ def multi_step_forecast_validation(model:(...),
     - `y` : tensor of shape (`batch`, `seq_len`, `out_dim`)
     - `n_steps` : integer number of future steps to predict
     '''
-    # pick batch instance and feature dimension
-    feat = 0 # TODO: this must be removed as there is only one feature
-    y_pred = multi_step_forecast(model, X, n_steps) # (n_seq, n_steps, out_dim)
+    # y_pred shape: (n_seq, n_steps, out_dim)
+    y_pred = multi_step_forecast(model, X, n_steps)
+    n_seq, _, out_dim = y_pred.shape
 
-    # format data for plot
-    y_true_np = y[n_steps-1:,:].cpu().detach().numpy().reshape(-1) # take the actual value n_steps ahead (-1 because y is already 1 step ahead)
-    y_pred_np = y_pred[:len(y_true_np),-1,:].cpu().detach().numpy().reshape(-1) # (n_seq, out_dim) # NOTE: only take the n_step ahead prediction
-    
-    # COMPUTE ERROR
-    error = float(nn.L1Loss()(torch.from_numpy(y_pred_np), torch.from_numpy(y_true_np)))
+    # prepare true + predicted keeping dimensions
+    # --- Handle y shape automatically ---
+    if y.ndim == 3:
+        # shape: (batch, seq_len, out_dim)
+        y_true_np = y[n_steps-1:n_steps-1+n_seq, 0, :].cpu().detach().numpy()
+    elif y.ndim == 2:
+        # shape: (batch, out_dim)
+        y_true_np = y[n_steps-1:n_steps-1+n_seq, :].cpu().detach().numpy()
+    else:
+        raise ValueError(f"Unsupported y shape: {y.shape}")
+    y_pred_np = y_pred[:len(y_true_np),-1,:].cpu().detach().numpy() # (n_seq, out_dim) # NOTE: only take the n-th step ahead prediction
+
+    # COMPUTE ERROR (mean across all dims)
+    error = float(nn.L1Loss()(torch.tensor(y_pred_np), torch.tensor(y_true_np)))
+
     if verbose:
         print("Forecasting", end=" ")
         utils.print_colored(n_steps, color=color, end=" ")
         print("steps ahead gave an error of", end=" ")
         utils.print_colored(error, color=color)
 
-    # create x‐axis for steps: you can choose e.g. from 1→n_steps
-    steps = np.arange(1, len(y_true_np)+1)
+    steps = np.arange(1, len(y_true_np) + 1)
+
     if img_path is not None:
-        plt.figure(figsize=(10,6))
-        plt.plot(steps, y_true_np, label='Actual', marker='o')
-        plt.plot(steps, y_pred_np, label='Predicted', marker='x', linestyle='--')
-        plt.fill_between(steps, y_true_np, y_pred_np,
-                        where=None,       # or a boolean array if you only want some segments
-                        interpolate=True, # helps when lines cross
-                        color='red',
-                        alpha=0.3,
-                        label="Error",
-                        )
-        plt.xlabel('Future Step')
-        plt.ylabel(f'Feature {feat} value')
-        plt.title(f'Actual vs Predicted - {n_steps}-step forecast (err:{round(error,5)})')
-        plt.legend()
-        plt.grid()
+        fig, axes = plt.subplots(out_dim, 1, figsize=(10, 4 * out_dim), sharex=True)
+
+        if out_dim == 1:
+            axes = [axes]
+
+        for d in range(out_dim):
+            axes[d].plot(steps, y_true_np[:, d], label='Actual', marker='o')
+            axes[d].plot(steps, y_pred_np[:, d], label='Predicted', marker='x', linestyle='--')
+
+            axes[d].fill_between(
+                steps,
+                y_true_np[:, d],
+                y_pred_np[:, d],
+                interpolate=True,
+                alpha=0.3,
+                label="Error"
+            )
+            label = labels[d] if labels is not None else f'Dimension {d}'
+            axes[d].set_ylabel(label)
+            axes[d].grid()
+            axes[d].legend()
+        axes[-1].set_xlabel('Future Step')
+        fig.suptitle(f'Multi-step Forecast ({n_steps} steps) - MAE: {round(error,5)}')
+
         plt.tight_layout()
         plt.savefig(img_path)
     return error
@@ -211,30 +214,31 @@ def multi_step_forecast_validation(model:(...),
 
 
 def deep_learning_model(params:dict, plot_limit:int=-1, color:str="blue") -> None:
+    '''
+    Main (wrapper) function for initiaslizing, training and testing the Deep Learning model
+    '''
     verbose:bool = params["verbose"]
     case_study:str = f"{params['model']}-{params['task']}"
-
     if verbose:
         utils.print_colored(f"SHIP-MOTION PREDICTION ({case_study})", highlight=color)
         print("Input Features:")
         utils.print_two_column(params['input_features'], color=color)
         print("Output Features:")
         utils.print_two_column(params['output_features'], color=color)
-    
     X, Y = get_data(task=params['task'],
                     seq_len=params['seq_len'],
                     dataset_file=f"{params['dataset_folder']}/{params['dataset']}",
                     in_features=set(params['input_features']),
                     out_features=set(params['output_features']),
                     n_labels=params['n_classes'],
-                    verbose=verbose
+                    verbose=verbose,
+                    reduce_frequency=params['reduce_frequency'],
                    )
     X_train, y_train, X_test, y_test = train_test_split(X=X, y=Y, split=params['train_test_split'])
 
     if verbose:
         print(f"Retrieving model for ", end="")
         utils.print_colored(case_study, color=color, end=" ... ")
-
     model = get_predictor(input_dim=len(params['input_features']), # TODO: this will change with the actual data
                           output_dim=len(params['output_features']) if params['task'] == 'REGR' else params['n_classes'],
                           type=params['model'],
@@ -270,19 +274,19 @@ def deep_learning_model(params:dict, plot_limit:int=-1, color:str="blue") -> Non
     
     if params['task'] == 'REGR':
         plot_predictions(model=model,
-                        X_test=X_test[:plot_limit],
-                        y_test=y_test[:plot_limit],
-                        plot_img=f"{result_folder}/{case_study}-prediction.png",
+                         X_test=X_test[:plot_limit],
+                         y_test=y_test[:plot_limit],
+                         plot_img=f"{result_folder}/{case_study}-prediction.png",
+                         features=params['output_features'],
                         )
         multi_step_error = multi_step_forecast_validation(model=model,
-                                                        X=X_test[:plot_limit],
-                                                        y=y_test[:plot_limit],
-                                                        n_steps=params['look_ahead'],
-                                                        img_path=f"{result_folder}/{case_study}-look_ahead.png",
-                                                        color=color,
-                                                        )
-    elif params['task'] == 'CLAS':
-        pass
+                                                          X=X_test[:plot_limit],
+                                                          y=y_test[:plot_limit],
+                                                          labels=params['output_features'],
+                                                          n_steps=params['look_ahead'],
+                                                          img_path=f"{result_folder}/{case_study}-look_ahead.png",
+                                                          color=color,
+                                                         )
     else:
         raise ValueError(f"Unsupported task ({params['task']})")
 

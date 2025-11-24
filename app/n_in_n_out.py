@@ -28,4 +28,4 @@ if __name__ == '__main__':
     
     multivariate_timeseries_analysis(params, plot_limit=plot_limit, color=color)
     
-    # deep_learning_model(params, plot_limit=plot_limit, color=color)
+    deep_learning_model(params, plot_limit=plot_limit, color=color)

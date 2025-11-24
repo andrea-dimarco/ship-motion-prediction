@@ -281,8 +281,6 @@ def deep_learning_model(params:dict, plot_limit:int=-1, color:str="blue") -> Non
                                                         img_path=f"{result_folder}/{case_study}-look_ahead.png",
                                                         color=color,
                                                         )
-    elif params['task'] == 'CLAS':
-        pass
     else:
         raise ValueError(f"Unsupported task ({params['task']})")
 

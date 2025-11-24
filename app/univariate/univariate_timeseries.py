@@ -29,6 +29,7 @@ def univariate_timeseries_analysis(params:dict, plot_limit:int=-1, color:str="bl
                          features=set(features),
                          verbose=verbose,
                          normalize=True,
+                         reduce_frequency=params['reduce_frequency'],
                         )
     # STATIONARITY
     if params['enforce_stationarity']:

@@ -9,6 +9,15 @@ from utils.utils import print_colored, print_dict, BAR, TimeExecution
 
 
 
+def get_even_rows(DF:pd.DataFrame) -> pd.DataFrame:
+    '''
+    Deletes every other row, only **even rows** remain
+    '''
+    return DF.iloc[::2].reset_index(drop=True)
+
+
+
+
 def get_dataframe(file_path:str, sheet_name:str=None, date_column:str=None, date_format:str="%Y-%m-%d %H:%M:%S") -> pd.DataFrame:
     import pandas as pd
     try:

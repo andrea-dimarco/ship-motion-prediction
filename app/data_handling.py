@@ -17,7 +17,8 @@ def get_data(task:Literal['REGR','CLAS'],
              in_features:set[str],
              out_features:set[str]|None=None,
              n_labels:int|None=None,
-             verbose:bool=True
+             verbose:bool=True,
+             reduce_frequency:bool=False,
             ) -> tuple[torch.Tensor,torch.Tensor]:
     import data_handling as dh
     from numpy import pi
@@ -27,6 +28,7 @@ def get_data(task:Literal['REGR','CLAS'],
                          features=in_features.union(out_features),
                          verbose=verbose,
                          normalize=True,
+                         reduce_frequency=reduce_frequency,
                         )
     if task == 'REGR':
         X, Y = dh.build_sequences(df=DF,
@@ -51,8 +53,6 @@ def get_data(task:Literal['REGR','CLAS'],
     Y = Y[:, -1, :]  # shape (n_sequences, sample_size)
     return X, Y
     
-
-
 
 
 def add_label_to_timeseries(DF:pd.DataFrame, n_labels:int, label_feature:str, save_path:str|None=None) -> pd.DataFrame:
@@ -175,7 +175,8 @@ def load_dataset(file_path:str,
                  features:set|None=None,
                  time_column:str='time',
                  normalize:bool=True,
-                 verbose:bool=True
+                 verbose:bool=True,
+                 reduce_frequency:bool=False,
                 ) -> pd.DataFrame:
     '''
     Loads the data from the ship-state simulations stored in `file_path` 
@@ -205,6 +206,12 @@ def load_dataset(file_path:str,
         if verbose:
             print("Normalizing data (min-max) ... ", end="")
         DF = ((DF - DF.min()) / (DF.max() - DF.min()))*2 -1
+        if verbose:
+            print("done.")
+    if reduce_frequency:
+        if verbose:
+            print("Reducing dataset frequency (half) ... ", end="")
+        DF = dfu.get_even_rows(DF)
         if verbose:
             print("done.")
     return DF

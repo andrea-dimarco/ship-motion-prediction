@@ -84,7 +84,7 @@ def plot_predictions(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, plot
         y_pred = y_pred.flatten()
         y_true = y_test.flatten()
     # Create the plot
-    from utils.plot_utils import confront_plots
+    from utils.plot_utils import confront_univariate_plots
     confront_univariate_plots(main_series=y_true.numpy(),
                               other_series=y_pred.numpy(),
                               main_label='Actual',
@@ -216,7 +216,8 @@ def deep_learning_model(params:dict, plot_limit:int=-1, color:str="blue") -> Non
                     in_features=set(params['input_features']),
                     out_features=set(params['output_features']),
                     n_labels=params['n_classes'],
-                    verbose=verbose
+                    verbose=verbose,
+                    reduce_frequency=params['reduce_frequency'],
                    )
     X_train, y_train, X_test, y_test = train_test_split(X=X, y=Y, split=params['train_test_split'])
 
@@ -270,8 +271,6 @@ def deep_learning_model(params:dict, plot_limit:int=-1, color:str="blue") -> Non
                                                         img_path=f"{result_folder}/{case_study}-look_ahead.png",
                                                         color=color,
                                                         )
-    elif params['task'] == 'CLAS':
-        pass
     else:
         raise ValueError(f"Unsupported task ({params['task']})")
 

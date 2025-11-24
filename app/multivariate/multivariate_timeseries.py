@@ -29,6 +29,7 @@ def multivariate_timeseries_analysis(params:dict, plot_limit:int=-1, color:str="
                          features=set(features),
                          verbose=verbose,
                          normalize=True,
+                         reduce_frequency=params['reduce_frequency'],
                         )
     # STATIONARITY
     if params['enforce_stationarity']:
@@ -64,7 +65,7 @@ def train_test_VAR(params, TS:pd.DataFrame, verbose:bool=True, color:str="blue",
     train_test_split:int = int(len(TS)*params['train_test_split'])
     TS_train = TS[:-params['look_ahead']]
     TS_test= TS[-params['look_ahead']:]
-    p = params['var_p']
+    p = params['varmax_p']
     n_features = len(list(TS.columns))
     if verbose:
         print("Initializing VAR model with the following parameters:")
