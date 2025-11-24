@@ -358,10 +358,60 @@ def var_model(p:int, train_series:pd.Series, verbose:bool=False) -> Any:
 
 
 
+def varmax_model(p:int, q:int, train_series:pd.Series, verbose:bool=False) -> Any:
+    '''
+    `train_series` shape must be `(n_samples, n_features)`
+    '''
+    from statsmodels.tsa.statespace.varmax import VARMAX
+    model = VARMAX(train_series, order=(p, q)).fit()
+    if verbose:
+        print(model.summary())
+    return model
+
+
+
+def vecm_model(train_series:np.ndarray,
+               k_ar_diff:int,
+               coint_rank:int,
+               deterministic:Literal['nc','co','ci','both']='ci',
+               verbose:bool=False,
+              ):
+    """
+    Initializes and fits a VECM model.
+
+    **Arguments**:
+    - `train_series` : np.ndarray of shape (n_obs, n_vars)
+    - `k_ar_diff` : number of lagged differences (equivalent to VAR lags in differences)
+    - `coint_rank` : cointegration rank (number of long-run relationships)
+    - `deterministic` : type of deterministic term:
+        - 'nc' : no constant
+        - 'co' : constant only in cointegration relation
+        - 'ci' : constant only in VAR in differences
+        - 'both': constant in cointegration and VAR in differences
+    
+    **Returns**:
+    - `vecm_fit` : fitted VECMResults object
+    """
+    from statsmodels.tsa.vector_ar.vecm import VECM
+    # Convert to DataFrame if input is numpy
+    if isinstance(train_series, np.ndarray):
+        n_vars = train_series.shape[1] if train_series.ndim > 1 else 1
+        col_names = [f"var_{i}" for i in range(n_vars)]
+        data_df = pd.DataFrame(train_series, columns=col_names)
+    else:
+        data_df = train_series
+    # Initialize and fit VECM
+    vecm_model = VECM(endog=data_df, k_ar_diff=k_ar_diff, coint_rank=coint_rank, deterministic=deterministic)
+    vecm_fit = vecm_model.fit()
+    if verbose:
+        print(vecm_fit.summary())
+    return vecm_fit
+
+
 def var_forecast(model, input_samples:pd.DataFrame, steps:int) -> pd.DataFrame:
     '''
     **Arguments**:
-    - `model` : The fitted **VAR** model
+    - `model` : The fitted **VAR**/**VARMAX** model
     - `input_samples` : the **p** (model's lag) samples necessary to make the initial forecast
     - `steps` : how many steps in the future to forecast
     '''
@@ -370,6 +420,29 @@ def var_forecast(model, input_samples:pd.DataFrame, steps:int) -> pd.DataFrame:
                              )
     # Convert to DataFrame for easy comparison
     return pd.DataFrame(forecast, columns=input_samples.columns)
+
+
+
+
+def vecm_forecast(model, steps:int) -> pd.DataFrame:
+    """
+    Forecast future values using a fitted VECM model.
+
+    **Arguments**::
+    - `model` : fitted VECMResults object
+    - `steps` : int, number of steps to forecast
+
+    **Returns**:
+    - pd.DataFrame with forecasted values
+    """
+    # Generate forecast
+    forecast = model.predict(steps=steps)
+    
+    # Convert to DataFrame for easy handling
+    return pd.DataFrame(forecast, columns=model.names)
+
+
+
 
 
 

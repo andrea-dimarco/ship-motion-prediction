@@ -9,19 +9,19 @@
 - **LSTM**:
     - n-in 1-out
     - classificazione
+    - test `1_in_1_out` con frequnza dataset ridotta
 
 
 - **GRU**
     - n-in 1-out
     - classificazione
+    - test `1_in_1_out` con frequnza dataset ridotta
 
 
 - **TIMESERIES**
+    - test `1_in_1_out` con frequnza dataset ridotta
     - plot resiuals per modelli `n_in_n_out`
     - altri modelli multi-variati
-        - VMA
-        - VARMA
-        - VECM (cointegration-based) [good candidate]
         - MGARCH (overkill?)
 
 
@@ -72,4 +72,8 @@
 - plot multi-dimensionale per NN `n_in_n_out`
 - *multi-step lookahead* per NN `n_in_n_out`
 - training & testing modelli NN `n_in_n_out`
+- dimezza frequenza dataset
+- Modello **VARMAX**
+- Test e validazione **VECM** --> Stesse performance di **VAR**
+- Test e validazione **VAR** *a livelli*
 - ...

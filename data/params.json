@@ -46,8 +46,10 @@
     "volatility_mean" : "AR", // can be {'constant', 'zero', 'AR', 'ARX'}
     "volatility_dist" : "normal", // can be {'normal', 't', 'skewt'}
         // VAR
-    "varmax_p" : 70,
+    "var_p" : 50,
     "varmax_q" : 10,
+        // VECM
+    "vecm_rank" : -1, // if -1 then all variables will be cointegrated
 
 
     // Environment
@@ -58,7 +60,7 @@
                         ],
     "output_features" : [
                         //  "RefX", "RefY", "RefZ",
-                        //  "Roll", "Pitch", "Yaw",
+                        // "Roll", "Pitch", "Yaw",
                         "RefUspace", "RefVspace", "RefWspace"
                         ],
 
