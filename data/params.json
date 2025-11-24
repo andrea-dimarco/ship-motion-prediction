@@ -4,7 +4,7 @@
     "dataset" : "Hs4_0-Tp6_0.csv", // "Hs2_5-Tp10_0.csv",
     "seq_len" : 100,
     "look_ahead" : 70,
-    "model" : "GRU", // LSTM or GRU
+    "model" : "LSTM", // LSTM or GRU
     "task" : "REGR", // Regression (REGR) or classification (CLAS)
     
 
@@ -16,10 +16,10 @@
     "n_classes" : 8, // only used if 'task' is "CLAS"
         // LSTMs
     "lstm_num_layers" : 1,
-    "lstm_hidden_dim" : 16,
+    "lstm_hidden_dim" : 8,
         // GRUs
     "gru_num_layers" : 1,
-    "gru_hidden_dim" : 16,
+    "gru_hidden_dim" : 8,
         // Adam Optimizer
     "adam_lr" : 0.005, // learning rate
     "adam_b1" : 0.75,
@@ -35,30 +35,27 @@
     "arima_i" : 0,
     "arima_q" : 70,
     "arima_alpha" : 0.05, // confidence interval
-        // Volatility
+        // GARCH
     "arch_p" : 5,
     "garch_q" : 5, 
     "arch_lag" : 30,
     "arch_resid_lags" : 30,
     "volatility_mean" : "AR", // can be {'constant', 'zero', 'AR', 'ARX'}
     "volatility_dist" : "normal", // can be {'normal', 't', 'skewt'}
+        // VAR
+    "var_p" : 70,
 
 
     // Environment
     "input_features" : [
-                         // "time", "zeta",
-                            // "RefX", "RefY", "RefZ",
-                            // "Roll", "Pitch", "Yaw",
-                            // "RefUspace",
-			                // "RefVspace",
-                            "RefWspace"
-                         // "Dir", "Height",
-                         // "PeakPeriod"
+                        // "RefX", "RefY", "RefZ",
+                        // "Roll", "Pitch", "Yaw",
+                        "RefUspace", "RefVspace", "RefWspace"
                         ],
     "output_features" : [
-                         // "RefUspace", 
-                         // "RefVspace"
-                         "RefWspace"
+                        //  "RefX", "RefY", "RefZ",
+                        //  "Roll", "Pitch", "Yaw",
+                        "RefUspace", "RefVspace", "RefWspace"
                         ],
 
 

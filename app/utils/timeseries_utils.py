@@ -12,7 +12,6 @@ import matplotlib.pyplot as plt
 import statsmodels.api as sm
 import statsmodels.tsa.api as tsa
 import statsmodels.formula.api as smf
-from statsmodels.tsa.api import VAR
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import kpss
 from statsmodels.api import OLS
@@ -347,14 +346,30 @@ def forecast_volatility(model:arch.univariate.base.ARCHModelResult, steps=5):
 
 
 
-def var_model(p:int, train_series:pd.Series, verbose:bool=False) -> VAR:
+def var_model(p:int, train_series:pd.Series, verbose:bool=False) -> Any:
     '''
     `train_series` shape must be `(n_samples, n_features)`
     '''
+    from statsmodels.tsa.api import VAR
     model = VAR(train_series).fit(p)
     if verbose:
         print(model.summary())
     return model
+
+
+
+def var_forecast(model, input_samples:pd.DataFrame, steps:int) -> pd.DataFrame:
+    '''
+    **Arguments**:
+    - `model` : The fitted **VAR** model
+    - `input_samples` : the **p** (model's lag) samples necessary to make the initial forecast
+    - `steps` : how many steps in the future to forecast
+    '''
+    forecast = model.forecast(y=input_samples.to_numpy(), 
+                              steps=steps
+                             )
+    # Convert to DataFrame for easy comparison
+    return pd.DataFrame(forecast, columns=input_samples.columns)
 
 
 

@@ -83,15 +83,26 @@ def plot_predictions(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, plot
         # Flatten arrays if necessary (useful for single-output models)
         y_pred = y_pred.flatten()
         y_true = y_test.flatten()
+
     # Create the plot
-    from utils.plot_utils import confront_plots
-    confront_univariate_plots(main_series=y_true.numpy(),
-                              other_series=y_pred.numpy(),
-                              main_label='Actual',
-                              other_label='Predicted',
-                              title='Prediction vs Actual',
-                              plot_img=plot_img
-                             )
+    plt.figure(figsize=(10, 6))
+    plt.plot(y_true, label='Actual', color='black', linewidth=2)
+    plt.plot(y_pred, label='Predicted', color='red', linestyle='--')
+    steps = np.arange(0, len(y_true))
+    plt.fill_between(steps, y_true, y_pred,
+                     where=None,       # or a boolean array if you only want some segments
+                     interpolate=True, # helps when lines cross
+                     color='red',
+                     alpha=0.3,
+                     label="Error",
+                    )
+    plt.title(title)
+    plt.xlabel('Time Step')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(plot_img)
 
 
 
@@ -127,7 +138,7 @@ def multi_step_forecast(model:(...), init_seq:torch.Tensor, n_steps:int=1) -> to
         # 1) predict next step
         try:
             # LSTM
-            y_pred, hidden = model(current_seq, None) # TODO: hidden or None? since the sequence is complete
+            y_pred, hidden = model(current_seq, hidden)
         except TypeError:
             # GRU
             y_pred = model(current_seq)

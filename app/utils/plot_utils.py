@@ -378,3 +378,108 @@ def show_summary_statistics(actual:np.ndarray,
 
 
 
+def confront_univariate_plots(main_series:np.ndarray,
+                              other_series:np.ndarray,
+                              plot_img:str,
+                              main_label:str="Actual",
+                              other_label:str="Predicted",
+                              title:str="Predictions vs Actual"
+                             ) -> None:
+    '''
+    Plots the model's predictions against the actual `y_test` values.
+
+    **Parameters**:
+    - `main_series` : the main plot, it will be shown as a continuous thick line
+    - `other_series` : the other plot to be confronted with the `main_series`
+    - `plot_img` : where to save the picture
+    - `title` : title of the plot
+    - `main_label` : the name for the `main_series`
+    - `other_label` : the name for the `other_series`
+    '''
+    # Create the plot
+    plt.figure(figsize=(10, 6))
+    plt.plot(main_series, label=main_label, color='black', linewidth=2)
+    plt.plot(other_series, label=other_label, color='red', linestyle='--')
+    steps = np.arange(0, len(main_series))
+    plt.fill_between(steps, main_series, other_series,
+                     where=None,       # or a boolean array if you only want some segments
+                     interpolate=True, # helps when lines cross
+                     color='red',
+                     alpha=0.3,
+                     label="Error",
+                    )
+    plt.title(title)
+    plt.xlabel('Time Step')
+    plt.ylabel('Value')
+    plt.legend()
+    plt.grid(True, alpha=0.3)
+    plt.tight_layout()
+    plt.savefig(plot_img)
+    plt.clf()
+
+
+
+
+def confront_multivariate_plots(main_series,
+                                other_series,
+                                plot_img:str,
+                                labels:list[str]|None=None,
+                                main_label:str="Actual",
+                                other_label:str="Predicted",
+                                title:str="Predictions vs Actual",
+                               ) -> None:
+    '''
+    Plots the model's predictions against the actual `y_test` values.
+
+    **Parameters**:
+    - `main_series` : the main plot, it will be shown as a continuous thick line
+    - `other_series` : the other plot to be confronted with the `main_series`
+    - `plot_img` : where to save the picture
+    - `title` : title of the plot
+    - `main_label` : the name for the `main_series`
+    - `other_label` : the name for the `other_series`
+    '''
+    # Ensure 2D shape
+    if main_series.ndim == 1:
+        main_series = main_series.reshape(-1, 1)
+        other_series = other_series.reshape(-1, 1)
+
+    n_steps, n_dims = main_series.shape
+    steps = np.arange(n_steps)
+
+    fig, axes = plt.subplots(
+        n_dims,
+        1,
+        figsize=(10, 4 * n_dims),
+        sharex=True
+    )
+
+    if n_dims == 1:
+        axes = [axes]
+
+    for i, ax in enumerate(axes):
+        ax.plot(main_series[:, i], label=main_label, color='black', linewidth=2)
+        ax.plot(other_series[:, i], label=other_label, color='red', linestyle='--')
+
+        ax.fill_between(
+            steps,
+            main_series[:, i],
+            other_series[:, i],
+            interpolate=True,
+            color='red',
+            alpha=0.3,
+            label="Error"
+        )
+        label = labels[i] if labels is not None else f"Dim {i}"
+        ax.set_ylabel(label)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+    axes[-1].set_xlabel("Time Step")
+    fig.suptitle(title, fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    plt.savefig(plot_img)
+    plt.close()
+
+
+
