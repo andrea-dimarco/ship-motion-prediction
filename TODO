@@ -3,18 +3,15 @@
 
 # TODO
 
-- **DATASET**:
-    - fare un plot per visualizzare gli errori di classificazione
-        - multi-class confusion matrix va bene uguale
-
-
 - **LSTM**:
-    - classificazione n-in 1-out
+    - test `n_in_n_out`
+    - test `n_in_1_out`
     - test `1_in_1_out` con frequnza dataset ridotta
 
 
 - **GRU**
-    - classificazione n-in 1-out
+    - test `n_in_n_out`
+    - test `n_in_1_out`
     - test `1_in_1_out` con frequnza dataset ridotta
 
 
@@ -23,7 +20,7 @@
     - plot resiuals per modelli `n_in_n_out`
     - altri modelli multi-variati
         - MGARCH (overkill?)
-        - SVAR (?)
+        - SVAR (conviene?)
 
 
 - **K-FOLD**
@@ -37,10 +34,10 @@
 - Creare la *repository*
 - Impostare il *Dockerfile* e gli script `build.sh`, `clean.sh` e `run.sh`
 - Reti standard
-    - Regressore **LSTM**
-    - Regressore **GRU**
-    - Classificatore **LSTM**
-    - Classificatore **GRU**
+    - Regressore `LSTM`
+    - Regressore `GRU`
+    - Classificatore `LSTM` *(draft)*
+    - Classificatore `GRU` *(draft)*
 - Upload dati sul cluster e generazione dell'immagine .sif
 - Discretizzare i dati
 - Costruttore sequenze timeseries
@@ -55,32 +52,36 @@
 - Normalizzazione dati simulazione
 - Training loop per `REGR` di `GRU` e `LSTM` con dati delle simulazioni
 - Analisi stazionarietà delle timeseries
-- Fit modello ARIMA
-- Validazione & Plot predizione ARIMA
-- Confronto predizione GRU e ARIMA 
-- Modelli AR e MA
+- Fit modello `ARIMA`
+- Validazione & Plot predizione `ARIMA`
+- Confronto predizione `GRU`
+- Confronto predizione `ARIMA` 
+- Modelli `AR` e `MA`
 - fix plot
 - Test hyperparameters
-- Modelli ARCH e GARCH
+- Modelli `ARCH` e `GARCH`
 - Controllo formale della performance dei modelli
 - Pulizia directory & test
 - Plot forecasting multi-variato
-- fit modello VAR
-- script validazione modello VAR
-- test modello VAR
-- validazione VAR
-- wrapper modelli NN per `n_in_n_out`
-- plot multi-dimensionale per NN `n_in_n_out`
-- *multi-step lookahead* per NN `n_in_n_out`
-- training & testing modelli NN `n_in_n_out`
+- fit modello `VAR`
+- script validazione modello `VAR`
+- test modello `VAR`
+- validazione `VAR`
+- wrapper modelli **NN** per `n_in_n_out`
+- plot multi-dimensionale per **NN** `n_in_n_out`
+- *multi-step lookahead* per **NN** `n_in_n_out`
+- training & testing modelli **NN** `n_in_n_out`
 - dimezza frequenza dataset
-- Modello **VARMAX**
-- Test e validazione **VECM** --> Stesse performance di **VAR**
-- Test e validazione **VAR** *a livelli*
+- Modello `VARMAX`
+- Test e validazione `VECM` --> Stesse performance di `VAR`
+- Test e validazione `VAR` *a livelli*
 - Confusion Matrix univariata, multiclasse
 - Forecasting da classe a valore
 - Forecasting multi-step per classificazione `1_in_1_out`
+- Plot confronto `y_true` *(continuo)* con `y_pred` *(discreto)* per **CLASSIFICAZIONE**
 - **NON SI FA PIU' `n_in_n_out` PER CLASSIFICAZIONE**
-- Multi-step look-ahead per `n_in_1_out`
-- Plot e validazione multi-step look-ahead per `n_in_1_out`
+- Multi-step look-ahead per **REGRESSIONE** in `n_in_1_out`
+- Plot e validazione multi-step look-ahead per **REGRESSIONE** `n_in_1_out`
+- Multi-step look-ahead per **CLASSIFICAZIONE** in `n_in_1_out`
+- Plot e validazione multi-step look-ahead per **CLASSIFICAZIONE** `n_in_1_out`
 - ...

@@ -2,7 +2,7 @@
     "verbose" : true,
     "n_cores" : 10, // default: 8 
     "model" : "GRU", // LSTM or GRU
-    "task" : "REGR", // Regression (REGR) or classification (CLAS)
+    "task" : "CLAS", // Regression (REGR) or classification (CLAS)
 
     // DATASET
     "dataset" : "Hs4_0-Tp6_0.csv", // "Hs2_5-Tp10_0.csv",

@@ -93,8 +93,8 @@ def plot_forecast_class(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, p
                                 plot_img=plot_img,
                                )
 
-# TODO: this
-def multi_step_asymmetric_class_forecast(model:(...), X:torch.Tensor, n_labels:int, n_steps:int=1) -> torch.Tensor:
+
+def multi_step_asymmetric_class_forecast(model:(...), X:torch.Tensor, y:torch.Tensor, selected_dim:int, n_labels:int, n_steps:int=1) -> torch.Tensor:
     """
     **Arguments**:
     - `model` : the trained MyLSTM model
@@ -125,21 +125,25 @@ def multi_step_asymmetric_class_forecast(model:(...), X:torch.Tensor, n_labels:i
         predictions.append(y_pred.unsqueeze(1))  # (batch,1,out_dim)
         # 2) prepare the next input sequence by appending y_pred and dropping oldest.
         # If your input size in_dim == out_dim, you can directly use it; if not, you may need a mapping
-        next_input = y_pred.unsqueeze(1)  # (batch,1,out_dim)
+        next_input = y[:,step,:] # shape (batch, out_dim)
+        next_input[:,selected_dim] = y_pred.reshape(-1)
+        next_input = next_input.unsqueeze(1) # (batch,1,out_dim)
         # drop first time step, shift sequence UP, append next_input
         current_seq = torch.cat( (current_seq[:,1:,:], next_input), dim=1 )
     return torch.cat(predictions, dim=1)  # (batch, n_steps, out_dim)
 
-# TODO: this
+
 def multi_step_asymmetric_class_forecast_validation(model:(...),
-                                         X:torch.Tensor,
-                                         y:torch.Tensor,
-                                         n_labels:int,
-                                         n_steps:int=5,
-                                         img_path:str|None=None,
-                                         verbose:bool=True,
-                                         color:str="blue",
-                                        ) -> float:
+                                                    X:torch.Tensor,
+                                                    y:torch.Tensor,
+                                                    guide:torch.Tensor,
+                                                    selected_dim:int,
+                                                    n_labels:int,
+                                                    n_steps:int=5,
+                                                    img_path:str|None=None,
+                                                    verbose:bool=True,
+                                                    color:str="blue",
+                                                   ) -> float:
     '''
     Plots the multi-step forecast results
 
@@ -151,7 +155,7 @@ def multi_step_asymmetric_class_forecast_validation(model:(...),
     '''
     # pick batch instance and feature dimension
     feat = 0 # TODO: this must be removed as there is only one feature
-    y_pred = multi_step_class_forecast(model=model, X=X, n_labels=n_labels, n_steps=n_steps) # (n_seq, n_steps, out_dim)
+    y_pred = multi_step_asymmetric_class_forecast(model=model, X=X, y=guide, selected_dim=selected_dim, n_labels=n_labels, n_steps=n_steps) # (n_seq, n_steps, out_dim)
 
     # format data for plot
     y_true_np = y[n_steps-1:,:].cpu().detach().numpy().reshape(-1) # take the actual value n_steps ahead (-1 because y is already 1 step ahead)
@@ -174,7 +178,6 @@ def multi_step_asymmetric_class_forecast_validation(model:(...),
         plt.fill_between(steps, y_true_np, y_pred_np,
                         where=None,       # or a boolean array if you only want some segments
                         interpolate=True, # helps when lines cross
-                        color='red',
                         alpha=0.3,
                         label="Error",
                         )
@@ -578,7 +581,6 @@ def deep_learning_n_to_n(params:dict, plot_limit:int=-1, color:str="blue") -> No
 
 
 
-
 def deep_learning_n_to_1(params:dict, plot_limit:int=-1, color:str="blue") -> None:
     '''
     Main (wrapper) function for initiaslizing, training and testing the Deep Learning model
@@ -650,6 +652,7 @@ def deep_learning_n_to_1(params:dict, plot_limit:int=-1, color:str="blue") -> No
                                          dataset_file=f"{params['dataset_folder']}/{params['dataset']}",
                                          in_features=set(params['input_features']),
                                          reduce_frequency=params['reduce_frequency'],
+                                         ignore_index=X_train.size()[0],
                                          verbose=verbose,
                                         )
         multi_step_error = multi_step_asymmetric_forecast_validation(model=model,
@@ -663,7 +666,6 @@ def deep_learning_n_to_1(params:dict, plot_limit:int=-1, color:str="blue") -> No
                                                                      color=color,
                                                                     )
     elif params['task'] == 'CLAS':
-        raise ValueError("N-to-1 class forecasting is not supported (yet) come back later!")
         error, CM = evaluate_sequence_classifier(model=model,
                                                  X_test=X_test,
                                                  y_test_onehot=y_test,
@@ -691,15 +693,25 @@ def deep_learning_n_to_1(params:dict, plot_limit:int=-1, color:str="blue") -> No
                             features=sorted(params['output_features']),
                             n_labels=params['n_classes'],
                            )
+        y_guide:torch.Tensor = get_guide(look_ahead=params['look_ahead'],
+                                         seq_len=params['seq_len'],
+                                         dataset_file=f"{params['dataset_folder']}/{params['dataset']}",
+                                         in_features=set(params['input_features']),
+                                         reduce_frequency=params['reduce_frequency'],
+                                         ignore_index=X_train.size()[0],
+                                         verbose=verbose,
+                                        )
         error = multi_step_asymmetric_class_forecast_validation(model=model,
-                                                     X=X_test[:plot_limit],
-                                                     y=y_test[:plot_limit],
-                                                     n_labels=params['n_classes'],
-                                                     n_steps=params['look_ahead'],
-                                                     img_path=f"{result_folder}/{case_study}-look_ahead.png",
-                                                     verbose=verbose,
-                                                     color=color,
-                                                    )
+                                                                X=X_test[:plot_limit],
+                                                                y=y_test[:plot_limit],
+                                                                guide=y_guide[:plot_limit],
+                                                                selected_dim=sorted(params['input_features']).index(params['output_features'][0]),
+                                                                n_labels=params['n_classes'],
+                                                                n_steps=params['look_ahead'],
+                                                                img_path=f"{result_folder}/{case_study}-look_ahead.png",
+                                                                verbose=verbose,
+                                                                color=color,
+                                                                )
     else:
         raise ValueError(f"Unsupported task ({params['task']})")
 

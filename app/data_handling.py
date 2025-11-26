@@ -17,6 +17,7 @@ def get_guide(look_ahead:int,
               in_features:set[str],
               verbose:bool=True,
               reduce_frequency:bool=False,
+              ignore_index:int=0,
              ) -> torch.Tensor:
     # LOAD DATASET
     DF = load_dataset(file_path=dataset_file,
@@ -38,7 +39,7 @@ def get_guide(look_ahead:int,
         X_list.append(X_seq)
         if verbose:
             bar.update()
-    return torch.tensor(X_list)
+    return torch.tensor(X_list[ignore_index:])
 
 
 
