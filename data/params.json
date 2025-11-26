@@ -1,8 +1,8 @@
 {
     "verbose" : true,
     "n_cores" : 10, // default: 8 
-    "model" : "LSTM", // LSTM or GRU
-    "task" : "CLAS", // Regression (REGR) or classification (CLAS)
+    "model" : "GRU", // LSTM or GRU
+    "task" : "REGR", // Regression (REGR) or classification (CLAS)
 
     // DATASET
     "dataset" : "Hs4_0-Tp6_0.csv", // "Hs2_5-Tp10_0.csv",
@@ -24,9 +24,9 @@
     
 
     // Neural Network
-    "n_epochs" : 1, 
+    "n_epochs" : 2, 
     "batch_size" : 32,
-    "validation_frequency" : 10,
+    "validation_frequency" : 1,
     "train_test_split" : 0.80, // ratio of sequences in the TRAIN dataset
     "n_classes" : 5, // only used if 'task' is "CLAS"
         // LSTMs

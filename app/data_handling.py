@@ -11,6 +11,38 @@ import utils.df_utils as dfu
 
 
 
+def get_guide(look_ahead:int,
+              seq_len:int,
+              dataset_file:str,
+              in_features:set[str],
+              verbose:bool=True,
+              reduce_frequency:bool=False,
+             ) -> torch.Tensor:
+    # LOAD DATASET
+    DF = load_dataset(file_path=dataset_file,
+                      features=in_features,
+                      verbose=verbose,
+                      normalize=True,
+                      reduce_frequency=reduce_frequency,
+                     )
+    DF = DF[sorted(list(in_features))]
+    # BUILD SEQUENCE GUIDE
+    X = DF[sorted(list(in_features))].values.astype('float32')
+    num_sequences = len(X) - (seq_len+look_ahead)
+    X_list = []
+    if verbose:
+        print("Generating guide")
+        bar = utils.BAR(num_sequences)
+    for i in range(num_sequences):
+        X_seq = X[i+seq_len : i+seq_len+look_ahead]
+        X_list.append(X_seq)
+        if verbose:
+            bar.update()
+    return torch.tensor(X_list)
+
+
+
+
 def get_data(task:Literal['REGR','CLAS'],
              seq_len:int,
              dataset_file:str,
@@ -41,13 +73,14 @@ def get_data(task:Literal['REGR','CLAS'],
                               )
     elif task == 'CLAS':
         assert len(out_features) == 1, "Multi-label samples are not supported (yet)"
+        # UNIVARIATE CLASSIFICATION
         label_feature = list(out_features)[0]
         DF = add_label_to_timeseries(DF, n_labels=n_labels, label_feature=label_feature)
         X, Y = build_sequences_labels(df=DF,
-                                      seq_len=seq_len,
-                                      labels_columns=[f'label_{label_feature}'],
-                                      verbose=verbose
-                                     )
+                                    seq_len=seq_len,
+                                    labels_columns=[f'label_{label_feature}'],
+                                    verbose=verbose
+                                    )
         Y = tensor_seq_to_one_hot(Y, num_classes=n_labels) # NOTE: sequences are UNIVARIATE, must be updated for MULTIVARIATE SEQUENCES
     else:
         raise ValueError(f"Unsupported task ({task})")
@@ -93,8 +126,8 @@ def build_sequences(df:pd.DataFrame,
         Same as X but shifted one timestep ahead.
     """
     assert look_ahead > 0
-    X = (df[list(X_features) if X_features is not None else df]).values.astype('float32')
-    Y = (df[list(Y_features) if Y_features is not None else df]).values.astype('float32')
+    X = (df[sorted(list(X_features)) if X_features is not None else sorted(list(df.columns))]).values.astype('float32')
+    Y = (df[sorted(list(Y_features)) if Y_features is not None else sorted(list(df.columns))]).values.astype('float32')
     assert len(X) == len(Y)
     num_sequences = len(X) - seq_len
     X_list, Y_list = [], []

@@ -9,14 +9,12 @@
 
 
 - **LSTM**:
-    - n-in 1-out
-    - classificazione n-in n-out
+    - classificazione n-in 1-out
     - test `1_in_1_out` con frequnza dataset ridotta
 
 
 - **GRU**
-    - n-in 1-out
-    - classificazione n-in n-out
+    - classificazione n-in 1-out
     - test `1_in_1_out` con frequnza dataset ridotta
 
 
@@ -25,6 +23,7 @@
     - plot resiuals per modelli `n_in_n_out`
     - altri modelli multi-variati
         - MGARCH (overkill?)
+        - SVAR (?)
 
 
 - **K-FOLD**
@@ -81,4 +80,7 @@
 - Confusion Matrix univariata, multiclasse
 - Forecasting da classe a valore
 - Forecasting multi-step per classificazione `1_in_1_out`
+- **NON SI FA PIU' `n_in_n_out` PER CLASSIFICAZIONE**
+- Multi-step look-ahead per `n_in_1_out`
+- Plot e validazione multi-step look-ahead per `n_in_1_out`
 - ...

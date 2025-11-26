@@ -294,7 +294,6 @@ def multi_step_forecast_validation(model:(...),
         plt.fill_between(steps, y_true_np, y_pred_np,
                         where=None,       # or a boolean array if you only want some segments
                         interpolate=True, # helps when lines cross
-                        color='red',
                         alpha=0.3,
                         label="Error",
                         )
@@ -440,12 +439,12 @@ def deep_learning_model(params:dict, plot_limit:int=-1, color:str="blue") -> Non
                         plot_img=f"{result_folder}/{case_study}-prediction.png",
                         )
         multi_step_error = multi_step_forecast_validation(model=model,
-                                                        X=X_test[:plot_limit],
-                                                        y=y_test[:plot_limit],
-                                                        n_steps=params['look_ahead'],
-                                                        img_path=f"{result_folder}/{case_study}-look_ahead.png",
-                                                        color=color,
-                                                        )
+                                                          X=X_test[:plot_limit],
+                                                          y=y_test[:plot_limit],
+                                                          n_steps=params['look_ahead'],
+                                                          img_path=f"{result_folder}/{case_study}-look_ahead.png",
+                                                          color=color,
+                                                         )
     elif params['task'] == 'CLAS':
         error, CM = evaluate_sequence_classifier(model=model,
                                                  X_test=X_test,
