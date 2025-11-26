@@ -1,5 +1,7 @@
-# TODO
+**ORE FATTE** (so far): `20`
 
+
+# TODO
 
 - **DATASET**:
     - fare un plot per visualizzare gli errori di classificazione
@@ -8,13 +10,13 @@
 
 - **LSTM**:
     - n-in 1-out
-    - classificazione
+    - classificazione n-in n-out
     - test `1_in_1_out` con frequnza dataset ridotta
 
 
 - **GRU**
     - n-in 1-out
-    - classificazione
+    - classificazione n-in n-out
     - test `1_in_1_out` con frequnza dataset ridotta
 
 
@@ -76,4 +78,7 @@
 - Modello **VARMAX**
 - Test e validazione **VECM** --> Stesse performance di **VAR**
 - Test e validazione **VAR** *a livelli*
+- Confusion Matrix univariata, multiclasse
+- Forecasting da classe a valore
+- Forecasting multi-step per classificazione `1_in_1_out`
 - ...

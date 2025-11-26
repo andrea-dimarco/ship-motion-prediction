@@ -517,11 +517,11 @@ def train_model(model,
         loss_history = []
     if verbose:
         print("Training started.")
-        print("\tTest set shape: in=", end="")
+        print("\tTest Set shape: in=", end="")
         utils.print_colored(tuple(X_train.size()), color=color, end=" ")
         print("out=", end="")
         utils.print_colored(tuple(y_train.size()), color=color)
-        print("\tValidation set shape: in=", end="")
+        print("\tValidation Set shape: in=", end="")
         utils.print_colored(tuple(X_val.size()), color=color, end=" ")
         print("out=", end="")
         utils.print_colored(tuple(y_val.size()), color=color)
