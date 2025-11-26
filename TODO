@@ -3,16 +3,32 @@
 
 # TODO
 
+- **REPOSITORY**
+    - Spostarsi sulla repository loro
+
+
 - **LSTM**:
-    - test `n_in_n_out`
-    - test `n_in_1_out`
     - test `1_in_1_out` con frequnza dataset ridotta
+        - LSTM-REGR
+        - LSTM-CLAS
+    - test `n_in_n_out`
+        - LSTM-REGR
+        - LSTM-CLAS
+    - test `n_in_1_out`
+        - LSTM-REGR
+        - LSTM-CLAS
 
 
 - **GRU**
-    - test `n_in_n_out`
-    - test `n_in_1_out`
     - test `1_in_1_out` con frequnza dataset ridotta
+        - GRU-REGR
+        - GRU-CLAS
+    - test `n_in_n_out`
+        - GRU-REGR
+        - GRU-CLAS
+    - test `n_in_1_out`
+        - GRU-REGR
+        - GRU-CLAS
 
 
 - **TIMESERIES**
@@ -21,6 +37,7 @@
     - altri modelli multi-variati
         - MGARCH (overkill?)
         - SVAR (conviene?)
+    - test complessivi `n_in_n_out`
 
 
 - **K-FOLD**
