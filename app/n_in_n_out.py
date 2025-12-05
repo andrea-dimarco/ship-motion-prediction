@@ -15,6 +15,6 @@ if __name__ == '__main__':
 
     params:dict = utils.load_json("/data/params.json")
     
-    multivariate_timeseries_analysis(params, plot_limit=plot_limit, color=color)
+    # multivariate_timeseries_analysis(params, plot_limit=plot_limit, color=color)
     
     deep_learning_n_to_n(params, plot_limit=plot_limit, color=color)

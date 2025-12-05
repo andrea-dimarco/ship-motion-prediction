@@ -27,6 +27,9 @@ def label_to_range_middle(label, n_labels) -> float:
     L, U = label_to_range(label, n_labels)
     return (L+U)/2
 
+def range_size(n_labels) -> float:
+    return 2/n_labels
+
 
 def evaluate_sequence_classifier(model:Callable,
                                  X_test:torch.Tensor, y_test_onehot:torch.Tensor,
@@ -63,16 +66,25 @@ def evaluate_sequence_classifier(model:Callable,
     if verbose:
         print(f"Misclassification Rate: {error_rate:.4f}")
     # Confusion matrix
-    cm = confusion_matrix(y_true=y_true, y_pred=y_pred, normalize='pred')
+    cm = confusion_matrix(y_true=y_true, y_pred=y_pred, normalize='true')
     if plot_img is not None:
-        disp = ConfusionMatrixDisplay(
-            confusion_matrix=cm,
-            display_labels=class_names,
-        )
-        disp.plot(cmap="Blues")
-        plt.title("Confusion Matrix")
-        plt.savefig(plot_img)
-        plt.clf()
+        try:
+            disp = ConfusionMatrixDisplay(
+                confusion_matrix=cm,
+                display_labels=class_names,
+            )
+            disp.plot(cmap="Blues")
+            plt.title("Confusion Matrix")
+            plt.savefig(plot_img)
+            plt.clf()
+        except ValueError:
+            disp = ConfusionMatrixDisplay(
+                confusion_matrix=cm,
+            )
+            disp.plot(cmap="Blues")
+            plt.title("Confusion Matrix")
+            plt.savefig(plot_img)
+            plt.clf()
     return error_rate, cm
 
 
@@ -83,15 +95,69 @@ def plot_forecast_class(model:(...), X_test:torch.Tensor, y_test:torch.Tensor, p
     with torch.no_grad():
         outputs = model(X_test) # shape: (n_sequences, num_classes)
     y_pred_class:np.ndarray = torch.argmax(outputs, dim=1).cpu().numpy()
-    from utils.plot_utils import confront_multivariate_plots
-    confront_multivariate_plots(main_series=y_test.numpy(),
-                                main_label='Actual',
-                                other_series=np.array([label_to_range_middle(y_pred_class[i], n_labels) for i in range(len(y_pred_class))]).reshape(-1,1),
-                                other_label='Predicted',
-                                labels=sorted(features) if features is not None else None,
-                                title="Actual vs. Predicted",
-                                plot_img=plot_img,
-                               )
+    error_size = range_size(n_labels) / 2
+    main_series=y_test.numpy()
+    main_label='Actual'
+    other_series=np.array([label_to_range_middle(y_pred_class[i], n_labels) for i in range(len(y_pred_class))]).reshape(-1,1)
+    
+    other_label='Predicted'
+    labels=sorted(features) if features is not None else None
+    title="Actual vs. Predicted"
+    # Ensure 2D shape
+    if main_series.ndim == 1:
+        main_series = main_series.reshape(-1, 1)
+        other_series = other_series.reshape(-1, 1)
+
+    n_steps, n_dims = main_series.shape
+    steps = np.arange(n_steps)
+
+    fig, axes = plt.subplots(
+        n_dims,
+        1,
+        figsize=(10, 4 * n_dims),
+        sharex=True
+    )
+
+    if n_dims == 1:
+        axes = [axes]
+
+    for i, ax in enumerate(axes):
+        upper_bound = other_series[:, i]+error_size
+        lower_bound = other_series[:, i]-error_size
+        actual = main_series[:, i]
+        pred = other_series[:, i]
+        ax.plot(actual, label=main_label, color='black', linewidth=2)
+        ax.plot(pred, label=other_label, color='red', linestyle='--')
+        # ax.plot(upper_bound, color='black', alpha=0.3, linestyle='--')
+        # ax.plot(lower_bound, color='black', alpha=0.3, linestyle='--')
+        ax.fill_between(
+            steps,
+            upper_bound,
+            lower_bound,
+            interpolate=True,
+            # color='red',
+            alpha=0.3,
+            label="interval"
+        )
+        ax.fill_between(
+            steps,
+            actual,
+            pred,
+            interpolate=True,
+            color='red',
+            alpha=0.3,
+            label="error"
+        )
+        label = labels[i] if labels is not None else f"Dim {i}"
+        ax.set_ylabel(label)
+        ax.legend()
+        ax.grid(True, alpha=0.3)
+
+    axes[-1].set_xlabel("Time Step")
+    fig.suptitle(title, fontsize=14)
+    plt.tight_layout(rect=[0, 0, 1, 0.97])
+    plt.savefig(plot_img)
+    plt.clf()
 
 
 def multi_step_asymmetric_class_forecast(model:(...), X:torch.Tensor, y:torch.Tensor, selected_dim:int, n_labels:int, n_steps:int=1) -> torch.Tensor:
@@ -171,15 +237,27 @@ def multi_step_asymmetric_class_forecast_validation(model:(...),
 
     # create x‐axis for steps: you can choose e.g. from 1→n_steps
     steps = np.arange(1, len(y_true_np)+1)
+    error = range_size(n_labels) / 2
     if img_path is not None:
         plt.figure(figsize=(10,6))
         plt.plot(steps, y_true_np, label='Actual', marker='o')
         plt.plot(steps, y_pred_np, label='Predicted', marker='x', linestyle='--')
+        upper_bound = y_pred_np+error
+        lower_bound = y_pred_np-error
+        # plt.plot(steps, upper_bound, marker='x', linestyle='--')
+        # plt.plot(steps, lower_bound, marker='x', linestyle='--')
+        plt.fill_between(steps, upper_bound, lower_bound,
+                         where=None,       # or a boolean array if you only want some segments
+                         interpolate=True, # helps when lines cross
+                         alpha=0.3,
+                         label="interval",
+                        )
         plt.fill_between(steps, y_true_np, y_pred_np,
-                        where=None,       # or a boolean array if you only want some segments
-                        interpolate=True, # helps when lines cross
-                        alpha=0.3,
-                        label="Error",
+                         where=None,       # or a boolean array if you only want some segments
+                         interpolate=True, # helps when lines cross
+                         alpha=0.3,
+                         label="error",
+                         color="red",
                         )
         plt.xlabel('Future Step')
         plt.ylabel(f'Feature {feat} value')
@@ -586,7 +664,9 @@ def deep_learning_n_to_1(params:dict, plot_limit:int=-1, color:str="blue") -> No
     Main (wrapper) function for initiaslizing, training and testing the Deep Learning model
     '''
     verbose:bool = params["verbose"]
-    case_study:str = f"{params['model']}-{params['task']}-{len(params['output_features'])}"
+    case_study:str = f"{params['model']}-{params['task']}-{len(params['input_features'])}"
+    if params['task'] == 'CLAS':
+        case_study += f"-{params['n_classes']}"
     if verbose:
         utils.print_colored(f"SHIP-MOTION PREDICTION ({case_study})", highlight=color)
         print("Input Features:")

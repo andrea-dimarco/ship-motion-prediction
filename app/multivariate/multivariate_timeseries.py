@@ -60,8 +60,10 @@ def multivariate_timeseries_analysis(params:dict,
     # Multivariate Models
     train_test_VAR(params, DF, verbose, color, plot_limit=plot_limit)
     train_test_VECM(params, DF, verbose, color, plot_limit=plot_limit)
-    train_test_VARMAX(params, DF, verbose, color, plot_limit=plot_limit)
+    # train_test_SVAR(params, DF, verbose, color, plot_limit=plot_limit) # TODO: this fails
+    # train_test_VARMAX(params, DF, verbose, color, plot_limit=plot_limit) # TODO: this never ends
 
+    
     
 # # # # # # # # # #
 # MODEL FUNCTIONS #
@@ -113,6 +115,11 @@ def train_test_VAR(params, TS:pd.DataFrame, verbose:bool=True, color:str="blue",
                                 plot_img=f"{params['timeseries_folder']}/VAR-{p}-{n_features}{'-on-levels' if params['enforce_stationarity'] else ''}",
                                 labels=list(TS_test.columns),
                                )
+    if verbose:
+        print("done.")
+    if verbose:
+        print("Plotting VAR model residuals", end=" ... ")
+    tsu.multivariate_residuals(model=model, feature_names=list(TS_test.columns), plot_path=f"{params['timeseries_folder']}/VAR-{p}-{n_features}{'-on-levels' if params['enforce_stationarity'] else ''}_residuals", model_name='VAR')
     if verbose:
         print("done.")
     return model
@@ -224,8 +231,71 @@ def train_test_VECM(params, TS:pd.DataFrame, verbose:bool=True, color:str="blue"
                                )
     if verbose:
         print("done.")
+    if verbose:
+        print("done.")
+    if verbose:
+        print("Plotting VECM model residuals", end=" ... ")
+    tsu.multivariate_residuals(model=model, feature_names=list(TS_test.columns), plot_path=f"{params['timeseries_folder']}/VECM-{lag}-{rank}-{n_features}_residuals", model_name='VECM')
+    if verbose:
+        print("done.")
     return model
 
 
     
+
+# TODO: this
+def train_test_SVAR(params, TS:pd.DataFrame, verbose:bool=True, color:str="blue", plot_limit:int=-1) -> None:
+    if verbose:
+        utils.print_colored(f"SHIP-MOTION PREDICTION (SVAR)", highlight=color)
+    TS_train = TS[:-params['look_ahead']]
+    TS_test= TS[-params['look_ahead']:]
+    p = params['var_p']
+    n_features = len(list(TS.columns))
+    if verbose:
+        print(f"Initializing SVAR {'on levels ' if params['enforce_stationarity'] else ''}model with the following parameters:")
+        utils.print_colored("\tp", color=color, end=f": {p}\n")
+        utils.print_colored("\tTimeseries", color=color, end=f": {n_features}\n")
+        print(f"\tTotal: ", end="")
+        utils.print_colored(p*(n_features**2), color=color)
+        print(f"Provided Timeseries has ", end="")
+        utils.print_colored(len(TS_train), color=color, end=" ")
+        print("realizations.")
+        print("Fitting ... ", end="")
+    model = tsu.fit_svar_with_statsmodels(timeseries=TS_train.to_numpy(),
+                                          svar_type='A',
+                                          A=np.array([[1.0 if (i == j) else np.nan for i in range(n_features)] for j in range(n_features)]),
+                                          B=None,
+                                          lags=p,
+                                         )
+    if verbose:
+        print("done.")
+    forecast = tsu.var_forecast(model=model,
+                                input_samples=TS_train[-p:],
+                                steps=params['look_ahead'],
+                               )
+    # VALIDATE
+    from sklearn.metrics import mean_absolute_error, mean_squared_error
+    for col in TS_test.columns:
+        mae = mean_absolute_error(TS_test[col], forecast[col])
+        rmse = np.sqrt(mean_squared_error(TS_test[col], forecast[col]))
+        if verbose:
+            utils.print_colored(f"\t{col}", color=color, end=" --> ")
+            print(f"MAE: {mae:.4f} -- RMSE: {rmse:.4f}")
+    from utils.plot_utils import confront_multivariate_plots
+    if verbose:
+        print("Plotting SVAR forecasting ... ", end="")
+    confront_multivariate_plots(main_series=TS_test.to_numpy(), main_label='Actual',
+                                other_series=forecast.to_numpy(), other_label='Predicted',
+                                title=f"SVAR({p}) {params['look_ahead']} steps forecasting",
+                                plot_img=f"{params['timeseries_folder']}/SVAR-{p}-{n_features}",
+                                labels=list(TS_test.columns),
+                               )
+    if verbose:
+        print("done.")
+    if verbose:
+        print("Plotting SVAR model residuals", end=" ... ")
+    tsu.multivariate_residuals(model=model, feature_names=list(TS_test.columns), plot_path=f"{params['timeseries_folder']}/SVAR-{p}-{n_features}_residuals", model_name='SVAR')
+    if verbose:
+        print("done.")
+    return model
 

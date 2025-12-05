@@ -22,7 +22,7 @@ if __name__ == '__main__':
     
     # PARAMETERS
     color:str = "magenta"
-    plot_limit:int = 100
+    plot_limit:int = 50
 
 
     params:dict = utils.load_json("/data/params.json")
@@ -32,6 +32,6 @@ if __name__ == '__main__':
     assert len(params['output_features']) == 1, "This script supports SINGLE output only"
 
 
-    univariate_timeseries_analysis(params, plot_limit=plot_limit, color=color)
+    # univariate_timeseries_analysis(params, plot_limit=plot_limit, color=color)
     
     deep_learning_model(params, plot_limit=plot_limit, color=color)

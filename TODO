@@ -8,40 +8,28 @@
 
 
 - **LSTM**:
-    - test `1_in_1_out` con frequnza dataset ridotta
-        - LSTM-REGR
-        - LSTM-CLAS
-    - test `n_in_n_out`
-        - LSTM-REGR
-        - LSTM-CLAS
-    - test `n_in_1_out`
-        - LSTM-REGR
-        - LSTM-CLAS
+    - nel training loop, come validation use il `look_ahead`
+    - invece che predirre solo alla fine della sequenza, confrontare ogni step intermedio
 
 
-- **GRU**
-    - test `1_in_1_out` con frequnza dataset ridotta
-        - GRU-REGR
-        - GRU-CLAS
-    - test `n_in_n_out`
-        - GRU-REGR
-        - GRU-CLAS
-    - test `n_in_1_out`
-        - GRU-REGR
-        - GRU-CLAS
+- **GRU**:
+    - nel training loop, come validation use il `look_ahead`
+    - invece che predirre solo alla fine della sequenza, confrontare ogni step intermedio
 
 
-- **TIMESERIES**
-    - test `1_in_1_out` con frequnza dataset ridotta
-    - plot resiuals per modelli `n_in_n_out`
+- **TIMESERIES**:
+    - mostrare errore medio nel plot
     - altri modelli multi-variati
-        - MGARCH (overkill?)
-        - SVAR (conviene?)
-    - test complessivi `n_in_n_out`
+        - SVAR
 
 
 - **K-FOLD**
     - Confronto modelli
+
+
+
+- **HYBRID-AI**:
+    - simulatore
     
 
 
@@ -101,4 +89,6 @@
 - Plot e validazione multi-step look-ahead per **REGRESSIONE** `n_in_1_out`
 - Multi-step look-ahead per **CLASSIFICAZIONE** in `n_in_1_out`
 - Plot e validazione multi-step look-ahead per **CLASSIFICAZIONE** `n_in_1_out`
+- Test `GRU` per **REGRESSIONE** in `n_in_n_out`
+- TESTS! TESTS!! TESTS!!
 - ...

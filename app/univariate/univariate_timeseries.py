@@ -51,10 +51,10 @@ def univariate_timeseries_analysis(params:dict, plot_limit:int=-1, color:str="bl
                       max_lag=params['seq_len'],
                       verbose=verbose
                      )
-    train_test_ARIMA(params, TS, verbose, color, plot_limit=plot_limit)
     train_test_AR(params, TS, verbose, color, plot_limit=plot_limit)
     train_test_MA(params, TS, verbose, color, plot_limit=plot_limit)
     train_test_ARCH(params, TS, verbose, color, plot_limit=plot_limit)
+    train_test_ARIMA(params, TS, verbose, color, plot_limit=plot_limit)
     train_test_GARCH(params, TS, verbose, color, plot_limit=plot_limit)
 
     

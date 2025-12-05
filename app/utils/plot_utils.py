@@ -479,7 +479,7 @@ def confront_multivariate_plots(main_series,
     fig.suptitle(title, fontsize=14)
     plt.tight_layout(rect=[0, 0, 1, 0.97])
     plt.savefig(plot_img)
-    plt.close()
+    plt.clf()
 
 
 

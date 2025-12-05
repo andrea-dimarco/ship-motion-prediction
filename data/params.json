@@ -1,14 +1,14 @@
 {
     "verbose" : true,
     "n_cores" : 10, // default: 8 
-    "model" : "GRU", // LSTM or GRU
-    "task" : "CLAS", // Regression (REGR) or classification (CLAS)
+    "model" : "LSTM", // LSTM or GRU
+    "task" : "REGR", // Regression (REGR) or classification (CLAS)
 
     // DATASET
     "dataset" : "Hs4_0-Tp6_0.csv", // "Hs2_5-Tp10_0.csv",
+    "reduce_frequency" : true, // 10 Hz --> 5 Hz
     "seq_len" : 50, // 10 seconds
     "look_ahead" : 35, // 7 seconds
-    "reduce_frequency" : true, // 10 Hz --> 5 Hz
     "input_features" : [
                         // "RefX", "RefY", "RefZ",
                         // "Roll", "Pitch", "Yaw",
@@ -18,25 +18,25 @@
     "output_features" : [
                         // "RefX", "RefY", "RefZ",
                         // "Roll", "Pitch", "Yaw",
-                        // "RefUspace", "RefVspace",
+                        "RefUspace", "RefVspace",
                         "RefWspace"
                         ],
     
 
     // Neural Network
-    "n_epochs" : 2, 
+    "n_epochs" : 5001, 
     "batch_size" : 32,
-    "validation_frequency" : 1,
+    "validation_frequency" : 1000,
     "train_test_split" : 0.80, // ratio of sequences in the TRAIN dataset
-    "n_classes" : 5, // only used if 'task' is "CLAS"
+    "n_classes" : 7, // only used if 'task' is "CLAS"
         // LSTMs
     "lstm_num_layers" : 1,
-    "lstm_hidden_dim" : 8,
+    "lstm_hidden_dim" : 16,
         // GRUs
     "gru_num_layers" : 1,
-    "gru_hidden_dim" : 8,
+    "gru_hidden_dim" : 16,
         // Adam Optimizer
-    "adam_lr" : 0.005, // learning rate
+    "adam_lr" : 0.0050, // learning rate
     "adam_b1" : 0.75,
     "adam_b2" : 0.90,
     "decay_start" : 1.0, // percentage of 'adam_lr' at training start
@@ -58,7 +58,7 @@
     "volatility_mean" : "AR", // can be {'constant', 'zero', 'AR', 'ARX'}
     "volatility_dist" : "normal", // can be {'normal', 't', 'skewt'}
         // VAR
-    "var_p" : 50,
+    "var_p" : 70,
     "varmax_q" : 10,
         // VECM
     "vecm_rank" : -1, // if -1 then all variables will be cointegrated

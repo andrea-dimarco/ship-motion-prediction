@@ -6,6 +6,7 @@ import datetime
 from typing import Literal, Any
 
 # external libraries
+from scipy import linalg
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -15,7 +16,175 @@ import statsmodels.formula.api as smf
 from statsmodels.tsa.stattools import adfuller
 from statsmodels.tsa.stattools import kpss
 from statsmodels.api import OLS
-import arch
+
+from statsmodels.tsa.api import VAR
+from statsmodels.tsa.vector_ar.svar_model import SVAR 
+
+
+
+def select_lag_order(df, maxlags=8, verbose=True):
+    model = VAR(df)
+    sel = model.select_order(maxlags)
+    if verbose:
+        print("Lag order selection (AIC, BIC, FPE, HQIC):")
+        # print(sel.summary())
+    # prefer AIC if available; fallback to BIC
+    chosen = sel.aic
+    if np.isnan(chosen):
+        chosen = sel.bic
+    if np.isnan(chosen):
+        chosen = int(maxlags)
+    else:
+        chosen = int(chosen)
+    if verbose:
+        print(f"Chosen lag order: {chosen}")
+    return chosen
+
+
+def _fit_var(df, nlags=None, verbose:bool=False):
+    model = VAR(df)
+    if nlags is None:
+        nlags = select_lag_order(df, verbose=verbose)
+    res = model.fit(nlags)
+    if verbose:
+        print(res.summary())
+    return res
+
+
+def chol_decomposition_shocks(var_results):
+    """
+    Use Cholesky decomposition on reduced-form residual covariance to get structural matrix.
+    This corresponds to a recursive identification.
+    If u_t are reduced-form residuals, Sigma_u = E[u u'].
+    Let P be lower-triangular such that Sigma_u = P P'. Structural shocks eps = P^{-1} u.
+    """
+    u = var_results.resid  # shape (T, k)
+    Sigma_u = np.cov(u.T, ddof=var_results.df_model)
+    try:
+        P = linalg.cholesky(Sigma_u, lower=True)
+    except linalg.LinAlgError:
+        # If not positive definite numerically, use eigenvalue fix
+        eigvals, eigvecs = np.linalg.eigh(Sigma_u)
+        eigvals[eigvals < 1e-12] = 1e-12
+        Sigma_u_pd = eigvecs @ np.diag(eigvals) @ eigvecs.T
+        P = linalg.cholesky(Sigma_u_pd, lower=True)
+    # structural shocks
+    eps = np.linalg.solve(P, u.T).T
+    return P, eps
+
+
+def fit_svar_with_statsmodels(timeseries, lags:int, svar_type:Literal['A','B','AB'], A:np.ndarray|None=None, B:np.ndarray|None=None):
+    """
+    Try to fit SVAR using statsmodels' SVAR class.
+    - var_results: fitted VARResults object.
+    - A, B: identification matrices (use None if not available). SVAR type is either 'A' (short-run A) or 'B' (long-run) or 'AB' depending on statsmodels version.
+    Returns fitted SVAR results object.
+    """
+    # statsmodels SVAR construction expects the VARResults object
+    # Common call: SVAR(var_results, A=A, B=B)
+    var_res = VAR(timeseries).fit(lags)
+    svar_model = SVAR(var_res, A=A, B=B, svar_type=svar_type)
+    svar_res = svar_model.fit(maxlags=lags)
+    return svar_res
+
+
+def compute_structural_irfs(var_results, P, steps=20):
+    """
+    Compute structural IRFs from reduced-form VAR coefficients and structural matrix P.
+    var_results: fitted VARResults
+    P: lower-triangular matrix from Cholesky such that Sigma_u = P P'
+    steps: horizon
+    Returns: irfs array shape (steps, k, k): response of each variable (rows) to each structural shock (cols).
+    """
+    k = var_results.neqs
+    # use companion representation to propagate impulses, but statsmodels has irf functionality:
+    # reduced-form IRF (responses to reduced-form shocks)
+    rf_irf = var_results.irf(steps-1).irfs  # shape (steps, k, k) responses to reduced-form shocks
+    # structural IRF = rf_irf @ P
+    # at each horizon: structural response matrix = rf_irf[h] @ P
+    struct_irfs = np.empty_like(rf_irf)
+    for h in range(rf_irf.shape[0]):
+        struct_irfs[h] = rf_irf[h] @ P
+    return struct_irfs
+
+
+def plot_irfs(irfs, var_names=None, steps=None, show=True):
+    """
+    irfs: array (steps, k, k) where irfs[h, i, j] = response of variable i to shock j at horizon h
+    """
+    steps = irfs.shape[0] if steps is None else steps
+    k = irfs.shape[1]
+    if var_names is None:
+        var_names = [f"y{i}" for i in range(k)]
+    fig, axes = plt.subplots(k, k, figsize=(3*k, 2.5*k), squeeze=False)
+    horizons = np.arange(steps)
+    for i in range(k):
+        for j in range(k):
+            axes[i, j].plot(horizons, irfs[:, i, j])
+            axes[i, j].axhline(0, linestyle="--", linewidth=0.6)
+            if i == 0:
+                axes[i, j].set_title(f"Shock: {var_names[j]}")
+            if j == 0:
+                axes[i, j].set_ylabel(f"Resp: {var_names[i]}")
+    plt.tight_layout()
+    if show:
+        plt.show()
+    return fig
+
+
+def svar_model(timeseries:np.ndarray,
+               maxlags:int,
+               svar_type:Literal['A','B','AB']='A',
+               structural_A:np.ndarray|None=None,
+               structural_B:np.ndarray|None=None,
+               cholesky_if_no_struct:bool=True,
+               verbose:bool=True,
+              ) -> dict[str,Any]:
+    """
+    csv_path: path to CSV file (first column may be a date index).
+    cols: list of column names to use; if None, use all numeric columns.
+    structural_A, structural_B: numpy arrays for identification (or None)
+    cholesky_if_no_struct: if True and no A/B provided, use Cholesky.
+    """
+    # load
+    print(f"Loaded data with shape {timeseries.shape}")
+
+    # Fit VAR
+    nlags = select_lag_order(timeseries, maxlags=maxlags, verbose=verbose)
+    var_res = _fit_var(timeseries, nlags, verbose=False)
+
+    # Try statsmodels SVAR if user provided A or B and SVAR exists
+    if (structural_A is not None) or (structural_B is not None):
+        if verbose:
+            print("Attempting to fit SVAR with provided structural matrices (statsmodels).")
+        try:
+            svar_res = fit_svar_with_statsmodels(var_res, A=structural_A, B=structural_B, svar_type=svar_type)
+            if verbose:
+                print("SVAR fitted via statsmodels.")
+            return {
+                "var_model": var_res,
+                "svar_model": svar_res,
+            }
+        except Exception as e:
+            if verbose:
+                print("SVAR (statsmodels) failed:", e)
+            # fallback to cholesky if allowed
+    # If no statsmodels SVAR or no matrices provided, use Cholesky
+    if cholesky_if_no_struct:
+        if verbose:
+            print("Using Cholesky identification (recursive ordering) to get structural shocks.")
+        P, structural_shocks = chol_decomposition_shocks(var_res)
+        irfs = compute_structural_irfs(var_res, P, steps=20)
+        if verbose:
+            print("Computed structural IRFs using Cholesky matrix P.")
+        return {
+            "var_model": var_res,
+            "P": P,
+            "structural_shocks": structural_shocks,
+            "structural_irfs": irfs,
+        }
+    # else just return var
+    return {"var_model": var_res}
 
 
 
@@ -277,7 +446,7 @@ def volatility_model(series, model_type='GARCH',
                      lags=0,
                      resid_lags=0,
                      dist:Literal['normal','t','skewt']='normal'
-                    ) -> arch.univariate.base.ARCHModelResult:
+                    ) -> Any:
     """
     Fit an **ARCH** or **GARCH** model to a time series, supporting dynamic mean models (AR).
 
@@ -294,6 +463,7 @@ def volatility_model(series, model_type='GARCH',
     **Returns**:
     - `fitted_model` : The fitted model object.
     """
+    import arch
     series = np.asarray(series)
 
     # Configure mean model
@@ -327,7 +497,7 @@ def volatility_model(series, model_type='GARCH',
 
 
 
-def forecast_volatility(model:arch.univariate.base.ARCHModelResult, steps=5):
+def forecast_volatility(model:Any, steps=5):
     """
     Forecast future conditional variance using a fitted ARCH/GARCH model.
 
@@ -339,6 +509,7 @@ def forecast_volatility(model:arch.univariate.base.ARCHModelResult, steps=5):
     - `mean_forecast` : forecasted mean value
     - `variance_forecast` : forecasted variance value
     """
+    import arch
     forecast = model.forecast(horizon=steps)
     mean_forecast = forecast.mean.iloc[-1].values
     variance_forecast = forecast.variance.iloc[-1].values
@@ -350,7 +521,6 @@ def var_model(p:int, train_series:pd.Series, verbose:bool=False) -> Any:
     '''
     `train_series` shape must be `(n_samples, n_features)`
     '''
-    from statsmodels.tsa.api import VAR
     model = VAR(train_series).fit(p)
     if verbose:
         print(model.summary())
@@ -422,8 +592,6 @@ def var_forecast(model, input_samples:pd.DataFrame, steps:int) -> pd.DataFrame:
     return pd.DataFrame(forecast, columns=input_samples.columns)
 
 
-
-
 def vecm_forecast(model, steps:int) -> pd.DataFrame:
     """
     Forecast future values using a fitted VECM model.
@@ -441,6 +609,30 @@ def vecm_forecast(model, steps:int) -> pd.DataFrame:
     # Convert to DataFrame for easy handling
     return pd.DataFrame(forecast, columns=model.names)
 
+
+def multivariate_residuals(model, plot_path:str, feature_names:list[str]|None=None, model_name:str='VAR') -> None:
+    # Residuals (DataFrame with one column per variable)
+    residuals = model.resid
+    fig, axes = plt.subplots(
+        nrows=residuals.shape[1], 
+        ncols=1, 
+        figsize=(12, 8), 
+        sharex=True           # <-- share x-axis
+    )
+    for i in range(residuals.shape[1]):
+        col = i if feature_names is None else feature_names[i]
+        axes[i].plot(residuals[:, i])
+        axes[i].set_title(f"Residuals for {col}")
+        axes[i].grid()
+
+        # Hide x tick labels for all but the bottom plot
+        if i < residuals.shape[1] - 1:
+            axes[i].tick_params(labelbottom=False)
+    # Main title
+    fig.suptitle(f"{model_name} Model Residuals")
+    plt.tight_layout(rect=[0, 0, 1, 0.96])  # leaves space for suptitle
+    plt.savefig(plot_path)
+    plt.clf()
 
 
 
